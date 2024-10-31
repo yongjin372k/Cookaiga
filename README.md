@@ -1,4 +1,4 @@
-# COOKAiGa
+# COOKAiGA
 
 Team HELYX, We are a dedicated team of undergraduate students majoring in Information Engineering and Media (IEM) at the School of Electrical and Electronic Engineering, Nanyang Technological University (NTU). Our team comprises Eliza, Ewan, and Yong Jin, each bringing unique perspectives and skills to the table. 
 
