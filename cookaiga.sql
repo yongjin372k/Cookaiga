@@ -43,12 +43,14 @@ CREATE TABLE IF NOT EXISTS KITCHEN (							-- This is the MyKitchen, keeps track
 drop table recipe;
 CREATE TABLE IF NOT EXISTS RECIPE (
 	recipeID INT PRIMARY KEY AUTO_INCREMENT,
+	kitchenID INT NOT NULL,
 	foodID INT NOT NULL,
 	recipeName VARCHAR(255) NOT NULL, 
 	recipeDesc TEXT NOT NULL,
 	recipeSteps TEXT NOT NULL,
 	quantity DECIMAL(10,2),
 	recipe_pic_url VARCHAR(500),
+	FOREIGN KEY (kitchenID) REFERENCES kitchen(kitchenID),
 	FOREIGN KEY (quantity) REFERENCES kitchen(quantity)
 );
 
