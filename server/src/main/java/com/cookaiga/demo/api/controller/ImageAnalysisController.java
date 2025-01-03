@@ -1,9 +1,9 @@
-package com.cookaiga.demo.controller;
+package com.cookaiga.demo.api.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import com.cookaiga.demo.service.ImageAnalysisService;
+import com.cookaiga.demo.api.service.ImageAnalysisService;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package com.cookaiga.demo.service;
+package com.cookaiga.demo.api.service;
 
 import com.azure.ai.vision.imageanalysis.*;
 import com.azure.ai.vision.imageanalysis.models.*;
