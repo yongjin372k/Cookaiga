@@ -1,6 +1,7 @@
 package com.cookaiga.demo.service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -44,4 +45,21 @@ public class RecipeService {
             throw new RuntimeException("Failed to generate recipe");
         }
     }
+
+    public Map<String, String> generateRecipeImages(List<String> recipeNames) {
+        String apiUrl = "http://localhost:5000/generate-recipe-images";
+        Map<String, Object> request = new HashMap<>();
+        request.put("recipe_names", recipeNames);
+    
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request);
+        ResponseEntity<Map> response = restTemplate.postForEntity(apiUrl, entity, Map.class);
+    
+        if (response.getStatusCode() == HttpStatus.OK) {
+            return (Map<String, String>) response.getBody().get("image_urls");
+        } else {
+            throw new RuntimeException("Failed to generate recipe images");
+        }
+    }
+    
+    
 }
