@@ -1,44 +1,33 @@
 package com.cookaiga.demo.api.controller;
 
+import com.cookaiga.demo.api.service.KitchenService;
+import com.cookaiga.demo.models.Kitchen;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import com.cookaiga.demo.api.service.ImageAnalysisService;
-import com.cookaiga.demo.api.service.KitchenService;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/kitchen")
 public class KitchenController {
 
     @Autowired
-    private ImageAnalysisService imageAnalysisService;
-
-    @Autowired
     private KitchenService kitchenService;
 
-    /**
-     * Analyzes an image and saves the results in the kitchen table.
-     */
-    @PostMapping("/analyze-and-save")
-    public List<String> analyzeAndSave(
-            @RequestParam String imageUrl,
-            @RequestParam int userID,
-            @RequestParam Long foodID,
-            @RequestParam BigDecimal quantity,
-            @RequestParam String unit,
-            @RequestParam(required = false) LocalDate expiryDate) {
+    // Get kitchen details by userID
+    @GetMapping("/user/{userID}")
+    public Kitchen getKitchenByUserID(@PathVariable int userID) {
+        return kitchenService.getKitchenByUserID(userID);
+    }
 
-        // Step 1: Analyze the image to get dense captions
-        List<String> captions = imageAnalysisService.analyzeImageFromUrl(imageUrl);
+    // Save or update kitchen list for a user
+    @PostMapping("/save")
+    public int saveKitchenList(@RequestParam int userID, @RequestParam String kitchenList) {
+        return kitchenService.saveKitchenList(userID, kitchenList);
+    }
 
-        // Step 2: Pass captions and other parameters to KitchenService for saving/updating
-        kitchenService.processAndSaveKitchenData(captions, userID, foodID, quantity, unit, expiryDate);
-
-        // Step 3: Return the captions to the client
-        return captions;
+    // Delete a kitchen item by kitchenID
+    @DeleteMapping("/delete/{kitchenID}")
+    public String deleteKitchenById(@PathVariable int kitchenID) {
+        kitchenService.deleteKitchenById(kitchenID);
+        return "Kitchen item with ID " + kitchenID + " has been deleted successfully.";
     }
 }

@@ -18,14 +18,14 @@ public class Kitchen {
     @Column(name = "kitchenID")
     private int kitchenID;
 
-    @Column(name = "kitchenList")
+    @Column(name = "kitchenList", columnDefinition = "TEXT")
     private String kitchenList;
 
     @Column(name = "userID", nullable = false)
     private int userID;
 
     @Column(name = "foodID", nullable = false)
-    private Long foodID;
+    private int foodID;
 
     @Column(name = "quantity", precision = 10, scale = 2)
     private BigDecimal quantity;
@@ -39,6 +39,29 @@ public class Kitchen {
     @Column(name = "added_at", updatable = false)
     private LocalDateTime addedAt = LocalDateTime.now(); // Timestamp of when the item was added
 
+    public Kitchen() {
+
+    }
+
+    public Kitchen(
+        int kitchenID,
+        String kitchenList,
+        int userID,
+        int foodID,
+        BigDecimal quantity,
+        String unit,
+        LocalDate expiryDate,
+        LocalDateTime addedAt
+    ) {
+        this.kitchenID = kitchenID;
+        this.kitchenList = kitchenList;
+        this.userID = userID;
+        this.foodID = foodID;
+        this.quantity = quantity;
+        this.unit = unit;
+        this.expiryDate = expiryDate;
+        this.addedAt = addedAt;
+    }
 
     public int getKitchenID() {
         return this.kitchenID;
@@ -64,11 +87,11 @@ public class Kitchen {
         this.userID = userID;
     }
 
-    public Long getFoodID() {
+    public int getFoodID() {
         return this.foodID;
     }
 
-    public void setFoodID(Long foodID) {
+    public void setFoodID(int foodID) {
         this.foodID = foodID;
     }
 
@@ -102,6 +125,20 @@ public class Kitchen {
 
     public void setAddedAt(LocalDateTime addedAt) {
         this.addedAt = addedAt;
+    }
+
+    @Override
+    public String toString() {
+        return "{" +
+            " kitchenID='" + getKitchenID() + "'" +
+            ", kitchenList='" + getKitchenList() + "'" +
+            ", userID='" + getUserID() + "'" +
+            ", foodID='" + getFoodID() + "'" +
+            ", quantity='" + getQuantity() + "'" +
+            ", unit='" + getUnit() + "'" +
+            ", expiryDate='" + getExpiryDate() + "'" +
+            ", addedAt='" + getAddedAt() + "'" +
+            "}";
     }
 
 }
