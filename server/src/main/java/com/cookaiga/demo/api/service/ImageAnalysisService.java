@@ -3,6 +3,7 @@ package com.cookaiga.demo.api.service;
 import com.azure.ai.vision.imageanalysis.*;
 import com.azure.ai.vision.imageanalysis.models.*;
 import com.azure.core.credential.KeyCredential;
+import com.cookaiga.demo.api.repository.ImageAnalysisRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,13 @@ public class ImageAnalysisService {
     @Value("${azure.vision.key}")
     private String key;
 
-    public List<String> analyzeImageFromUrl(String imageUrl) {
+    private final ImageAnalysisRepository repository;
+
+    public ImageAnalysisService(ImageAnalysisRepository repository) {
+        this.repository = repository;
+    }
+
+    public void analyzeAndSaveKitchenList(int userID, String imageUrl) {
         // Validate endpoint and key
         if (endpoint == null || key == null || endpoint.isEmpty() || key.isEmpty()) {
             throw new IllegalStateException("Azure Vision API configuration is missing.");
@@ -31,18 +38,22 @@ public class ImageAnalysisService {
             .credential(new KeyCredential(key))
             .buildClient();
 
-        // Perform image analysis
         try {
+            // Perform image analysis
             ImageAnalysisResult result = client.analyzeFromUrl(
                 imageUrl,
                 Arrays.asList(VisualFeatures.DENSE_CAPTIONS),
                 new ImageAnalysisOptions().setGenderNeutralCaption(true)
             );
 
-            // Return the dense captions as a list of strings
-            return result.getDenseCaptions().getValues().stream()
+            // Convert dense captions to a comma-separated string
+            String kitchenList = result.getDenseCaptions().getValues().stream()
                 .map(DenseCaption::getText)
-                .collect(Collectors.toList());
+                .collect(Collectors.joining(", "));
+
+            // Save to the database
+            repository.insertOrUpdateKitchenList(userID, kitchenList);
+
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Image analysis failed: " + e.getMessage());
