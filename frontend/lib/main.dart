@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/camera_screen.dart';
+import 'package:frontend/screens/design.dart';
+import 'package:frontend/screens/homepage.dart';
 import 'screens/recipe_screen.dart';
 
 void main() {
@@ -12,11 +14,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Recipe App',
+      debugShowCheckedModeBanner:
+          true, // Change it to 'false' if you want to remove the debug banner at the top right
+      title: 'COOKAiGA',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: createMaterialColor(
+            Color(0xFF80A6A4) // for Flutter, add the HEX Code after 'FF'
+            ),
       ),
-      home: CameraPage(),
+      home: const HomePage(),
     );
   }
 }
