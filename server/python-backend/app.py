@@ -104,25 +104,35 @@ def generate_recipe_overview():
 def generate_recipe_steps():
     data = request.json
     recipe_name = data.get('recipe_name')
+    ingredients = data.get('ingredients')
 
     if not recipe_name:
         return jsonify({"error": "Recipe name is required"}), 400
+    
+    formatted_ingredients = "\n".join([f"- {ingredient}" for ingredient in ingredients])
+
 
     prompt = f"""
-    Generate a step-by-step cooking guide for the recipe "{recipe_name}". Each step should assign roles and responsibilities as follows:
-    - Parents handle tasks that involve sharp objects, hot surfaces, or dangerous equipment (e.g., knives, ovens, stoves).
-    - Children handle safer, simpler, or more fun tasks (e.g., mixing, pouring, cracking eggs, decorating).
-    - Everyone handles tasks that involve teamwork or activities that can be enjoyed together (e.g., setting up the counter, taste testing, serving).
-    - Use motivational and encouraging language suitable for ADHD individuals. Include fun phrases or comments to keep them engaged.
-    - Clearly indicate who is responsible for each step with "parent", "child", or "everyone" at the beginning of the step.
+    Generate a step-by-step guide for cooking "{recipe_name}" with a focus on parent-child collaboration. Using the following ingredients: {formatted_ingredients}.Each step must include:
+    1. A "step" field with the cooking process instruction.
+    2. A "motivation" field with a short, encouraging motivational message.
 
-    Example:
-    Step 1 (everyone): Gather all the ingredients together as a team. You’re the ultimate cooking squad!
-    Step 2 (child): Crack the eggs into the bowl. Remember, messy hands mean you’re doing it right!
-    Step 3 (parent): Chop the vegetables with a knife. Show off your pro skills while staying safe!
-    Step 4 (everyone): Taste the batter together to make sure it’s just right. Add a little extra magic if needed!
-    Step 5 (parent): Heat the pan and cook the pancakes. Flip like a master chef!
-    Step 6 (child): Add toppings and decorate the pancakes. Make it as colorful as you like!
+    Categorize steps as:
+    - Parents: Tasks that involve sharp objects, hot surfaces, or dangerous equipment.
+    - Children: Tasks that are safer or more fun, such as mixing or decorating.
+    - Everyone: Tasks that involve teamwork.
+
+    Return the response as a valid JSON array where each object has "step" and "motivation" keys. Example format:
+    [
+      {{
+        "step": "Step 1 (parent): Preheat the oven to 350°F.",
+        "motivation": "Great job handling the oven! You're awesome!"
+      }},
+      {{
+        "step": "Step 2 (child): Mix the dry ingredients in a bowl.",
+        "motivation": "You're doing a fantastic job mixing!"
+      }}
+    ]
     """
     response = client.completions.create(
         model="gpt-35-turbo-instruct",
@@ -134,9 +144,10 @@ def generate_recipe_steps():
         presence_penalty=0
     )
 
-    # Process and return steps
-    steps = response.choices[0].text.strip().split("\n")
-    steps = [step for step in steps if step.strip()]  # Remove empty lines
+    try:
+        steps = json.loads(response.choices[0].text.strip())
+    except json.JSONDecodeError:
+        return jsonify({"error": "Failed to parse steps. Check prompt and response formatting."}), 500
 
     return jsonify({"steps": steps})
 

@@ -63,7 +63,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
         // Parse data for recipe overview
         String recipeName = overviewLines.firstWhere(
           (line) => line.toString().startsWith("Recipe name:"),
-          orElse: () => "",
+          orElse: () => "Unknown Recipe", // Default value if not found
         ).replaceFirst("Recipe name:", "").trim();
 
         String ingredients = overviewLines.skipWhile(
@@ -73,6 +73,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
         String equipment = overviewLines.skipWhile(
           (line) => !line.toString().startsWith("Required equipment:"),
         ).skip(1).join("\n").trim();
+
 
         // Navigate to Overview Recipe Screen
         Navigator.push(

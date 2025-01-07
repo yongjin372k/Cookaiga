@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/cookingsteps.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class OverviewRecipe extends StatelessWidget {
   final String recipeName;
@@ -12,6 +15,43 @@ class OverviewRecipe extends StatelessWidget {
     required this.equipment,
   }) : super(key: key);
 
+  Future<List<Map<String, String>>> fetchSteps(String recipeName, String ingredients) async {
+    try {
+      // Replace with your backend API endpoint
+      final url = Uri.parse('http://10.0.2.2:5000/generate-recipe-steps');
+      
+      // Make a POST request with the recipe name as a payload
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'recipe_name': recipeName,
+          'ingredients': ingredients.split('\n'), // Convert ingredients into a list
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // Decode the JSON response
+        final data = jsonDecode(response.body);
+
+        // Extract the steps from the response
+        final List<Map<String, String>> steps = (data['steps'] as List<dynamic>)
+            .map((step) => {
+                  'motivation': (step['motivation'] ?? "").toString(),
+                  'step': (step['step'] ?? "").toString(),
+                })
+            .toList();
+
+        return steps;
+      } else {
+        throw Exception('Failed to fetch steps: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error fetching steps: $error');
+      throw Exception('Could not fetch steps. Please try again later.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,7 +61,7 @@ class OverviewRecipe extends StatelessWidget {
         elevation: 0,
         title: Column(
           children: [
-            const SizedBox(height: 30), // Add margin on top of the "Overview" text
+            const SizedBox(height: 30),
             const Text(
               "Overview",
               style: TextStyle(
@@ -57,8 +97,8 @@ class OverviewRecipe extends StatelessWidget {
                 ),
                 elevation: 5,
                 child: SizedBox(
-                  height: 400, // Set a fixed height for the card
-                  width: double.infinity, // Make it take the full width of the screen
+                  height: 400,
+                  width: double.infinity,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                         vertical: 16.0, horizontal: 20.0),
@@ -131,8 +171,21 @@ class OverviewRecipe extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
-              onPressed: () {
-                // Implement your functionality here
+              onPressed: () async {
+                try {
+                  final steps = await fetchSteps(recipeName, ingredients);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CookingStepsScreen(steps: steps),
+                    ),
+                  );
+                } catch (error) {
+                  // Handle the error (e.g., show a snackbar or alert dialog)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to fetch steps. Please try again later.')),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 primary: const Color(0xFF336A84),
