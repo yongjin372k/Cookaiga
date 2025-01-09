@@ -5,6 +5,7 @@ import openai
 from openai import AzureOpenAI
 from flask_cors import CORS
 import json
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -152,8 +153,6 @@ def generate_recipe_steps():
     return jsonify({"steps": steps})
 
 
-
-
 @app.route('/generate-recipe-images', methods=['POST'])
 async def generate_recipe_images():
     data = request.json
@@ -176,6 +175,127 @@ async def generate_recipe_images():
     image_urls = {name: url for name, url in results}
 
     return jsonify({"image_urls": image_urls})
+
+# Define a function to extract potential ingredients
+def extract_ingredient(item):
+    """
+    Extract potential ingredient names from descriptive phrases.
+    Match both individual words and multi-word phrases.
+    """
+    # Normalize the item to lowercase and remove unnecessary characters
+    normalized_item = item.lower()
+
+    # Check for exact multi-word ingredient matches first
+    matched_ingredients = [
+        ingredient for ingredient in VALID_INGREDIENTS
+        if ingredient in normalized_item
+    ]
+
+    return matched_ingredients
+
+
+# Define a list of valid ingredients
+VALID_INGREDIENTS = [
+    "butter", "chicken", "chicken breasts", "garlic", "tomato", "onion",
+    "salt", "pepper", "parsley", "basil",
+    "carrot", "potato", "cucumber", "zucchini", "broccoli", "cauliflower",
+    "spinach", "lettuce", "kale", "celery", "eggplant", "green beans",
+    "mushrooms", "sweet potato", "corn", "apple", "banana", "lemon", "lime",
+    "orange", "grapes", "pineapple", "strawberry", "avocado", "blueberry",
+    "raspberry", "watermelon", "mango", "pear", "kiwi", "cherry", "cilantro",
+    "rosemary", "thyme", "oregano", "dill", "sage", "paprika", "cumin",
+    "turmeric", "ginger", "cinnamon", "nutmeg", "clove", "black pepper",
+    "chili powder", "curry powder", "beef", "pork", "fish", "shrimp", "turkey",
+    "eggs", "bacon", "ham", "lamb", "tofu", "tempeh", "milk", "cheese", "cream",
+    "yogurt", "sour cream", "cream cheese", "rice", "pasta", "bread", "quinoa",
+    "oats", "barley", "lentils", "chickpeas", "black beans", "kidney beans",
+    "olive oil", "vegetable oil", "sesame oil", "soy sauce", "vinegar",
+    "mustard", "ketchup", "mayonnaise", "honey", "maple syrup", "sugar",
+    "vanilla extract", "baking powder", "baking soda", "yeast", "flour",
+    "breadcrumbs", "crab", "lobster", "clams", "scallops", "squid", "anchovies",
+    "sardines", "almonds", "walnuts", "cashews", "peanuts", "sunflower seeds",
+    "chia seeds", "pumpkin seeds", "flaxseeds", "chocolate", "cocoa powder",
+    "coconut milk", "coconut flakes", "stock", "broth", "gelatin", "yellow powder",
+    "white powder", 
+]
+
+# API endpoint to fetch and filter kitchen list based on user ID
+@app.route('/api/kitchen-list', methods=['GET'])
+def get_kitchen_list():
+    user_id = request.args.get('userID')
+    print(f"Received user_id: {user_id}")
+    if not user_id:
+        return jsonify({"error": "userID is required"}), 400
+
+    try:
+        cursor.execute(
+            """
+            SELECT kitchenList 
+            FROM KITCHEN 
+            WHERE userID = %s 
+            ORDER BY added_at DESC 
+            LIMIT 1
+            """, 
+            (user_id,)
+        )
+        result = cursor.fetchone()
+        print(f"SQL Result: {result}")
+        if result:
+            kitchen_list = result[0].split(", ")
+            print(f"Original kitchen list: {kitchen_list}")
+
+            # Filter valid ingredients
+            filtered_ingredients = []
+            for item in kitchen_list:
+                extracted_ingredients = extract_ingredient(item)
+                filtered_ingredients.extend(extracted_ingredients)
+
+            # Remove duplicates and maintain order
+            filtered_ingredients = list(dict.fromkeys(filtered_ingredients))
+            print(f"Filtered ingredients: {filtered_ingredients}")
+
+            # Automatically generate recipes if valid ingredients exist
+            if filtered_ingredients:
+                # Call the generate_recipe function directly
+                recipes = generate_recipe_from_ingredients(filtered_ingredients)
+                return jsonify({
+                    # "kitchen_list": filtered_ingredients,
+                    "recipes": recipes.get("recipe", [])
+                }), 200
+
+            return jsonify({"kitchen_list": filtered_ingredients}), 200
+        else:
+            return jsonify({"error": "No kitchen list found for the given userID"}), 404
+    except Exception as e:
+        print(f"Error retrieving kitchen list: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+# Helper function to generate recipes directly
+def generate_recipe_from_ingredients(ingredients):
+    prompt = f"""
+    Using the following ingredients: {', '.join(ingredients)}, suggest 4 simple and healthy recipe names only. 
+    Do not include detailed steps or descriptions, just the names of the recipes.
+    """
+    try:
+        response = client.completions.create(
+            model="gpt-35-turbo-instruct",
+            prompt=prompt,
+            temperature=1,
+            max_tokens=1000,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+        recipe_list = response.choices[0].text.strip().split("\n")
+        # Clean up numbering or extra characters
+        recipe_list = [recipe.lstrip('0123456789. ') for recipe in recipe_list]
+        return {"recipe": recipe_list}
+    except Exception as e:
+        print(f"Error generating recipes: {e}")
+        return {"error": "Failed to generate recipes"}
+
+
 
 
 if __name__ == "__main__":

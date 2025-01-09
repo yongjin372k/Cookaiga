@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:frontend/screens/letscook_03.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
@@ -72,7 +74,7 @@ class _CameraPageState extends State<CameraPage> {
 
   Future<void> _sendImageToApi(File image) async {
     try {
-      // Build the API URL with the userID query parameter
+      // Build the API URL for image analysis
       String urlWithUserId = "$apiUrl?userID=$userId";
 
       // Create a multipart request
@@ -91,27 +93,40 @@ class _CameraPageState extends State<CameraPage> {
 
       if (response.statusCode == 200) {
         // Successfully sent image
-        final responseBody = await response.stream.bytesToString();
-        print("Image successfully sent to the API! Response: $responseBody");
+        print("Image successfully sent to the API!");
 
-        // Display success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Image successfully analyzed!")),
+        // Fetch generated recipes directly from the backend
+        final recipeResponse = await http.get(
+          Uri.parse('http://10.0.2.2:5000/api/kitchen-list?userID=1'),
+          headers: {"Content-Type": "application/json"},
         );
+
+        if (recipeResponse.statusCode == 200) {
+          // Parse the response and extract recipes
+          final responseData = jsonDecode(recipeResponse.body);
+          final List<String> recipes = (responseData['recipes'] as List<dynamic>).cast<String>();
+
+          // Navigate to the LetsCook03Content page with only the recipes
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LetsCook03Content(recipes: recipes),
+            ),
+          );
+        } else {
+          throw Exception('Failed to fetch recipes');
+        }
       } else {
         // Handle API errors
         final responseBody = await response.stream.bytesToString();
         print("Failed to send image. Status Code: ${response.statusCode}");
         print("Error Response: $responseBody");
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Error: ${response.reasonPhrase}")),
         );
       }
     } catch (e) {
       print("Error sending image to the API: $e");
-
-      // Display error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error sending image: $e")),
       );
