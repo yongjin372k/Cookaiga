@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS KITCHEN (							-- This is the MyKitchen, Processes c
 -- 	FOREIGN KEY (foodID) REFERENCES ingredients(foodID)
 -- );
 
--- RECIPE TABLE --											-- NOT SURE
+-- RECIPE TABLE --											-- NOT SURE, NOT IN USE
 drop table recipe;
 CREATE TABLE IF NOT EXISTS RECIPE (
 	recipeID INT PRIMARY KEY AUTO_INCREMENT,
@@ -69,22 +69,23 @@ CREATE TABLE IF NOT EXISTS RECIPE (
 	FOREIGN KEY (quantity) REFERENCES kitchen(quantity)
 );
 
--- STICKERS TABLE --
-drop table stickers;
-CREATE TABLE IF NOT EXISTS STICKERS (
-	stickerID INT PRIMARY KEY AUTO_INCREMENT,
-	stickerName VARCHAR(255) NOT NULL,
-	sticker_img_url VARCHAR(500) NOT NULL, 
-	stickerDesc TEXT,
+-- STICKER TABLE --								-- The Collection. Use Coins to Redeem
+drop table sticker;
+CREATE TABLE IF NOT EXISTS STICKER (
+    stickerID INT PRIMARY KEY AUTO_INCREMENT,
+    stickerName VARCHAR(100) NOT NULL,
+    stickerDesc TEXT,
+    points_required INT NOT NULL,
+    file_path VARCHAR(255) 
 );
 
--- USERS STICKERBOOK --
-drop table stickerbook;
-CREATE TABLE IF NOT EXISTS STICKERBOOK (						-- STICKERBOOK is individual achievements
-	stickerbookID INT PRIMARY KEY AUTO_INCREMENT,
-	userID INT NOT NULL,
-	stickerID INT NOT NULL,
-	earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	FOREIGN KEY (userID) REFERENCES user(userID),
-	FOREIGN KEY (stickerID) REFERENCES stickers(stickerID)
+-- REDEMPTION HISTORY TABLE --							-- Used to check relation between Users and Stickers. If a user has redeemed the sticker before.
+drop table redemption;
+CREATE TABLE IF NOT EXISTS REDEMPTION (
+    redemptionID INT PRIMARY KEY AUTO_INCREMENT,
+    userID INT NOT NULL,
+    stickerID INT NOT NULL,
+    redeemed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userID) REFERENCES USER(userID),
+    FOREIGN KEY (stickerID) REFERENCES STICKER(stickerID)
 );
