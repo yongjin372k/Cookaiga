@@ -23,7 +23,7 @@ public class Sticker {
     @Column(name = "points_required", nullable = false)
     private int pointsReq;
 
-    @Column(name = "file_path", nullable = false)
+    @Column(name = "file_path")
     private String filePath;
 
     public Sticker() {}

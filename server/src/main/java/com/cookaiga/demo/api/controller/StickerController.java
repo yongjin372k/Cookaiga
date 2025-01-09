@@ -31,7 +31,7 @@ public class StickerController {
     }
 
     // Add a new sticker
-    @PostMapping
+    @PostMapping("/add")                                                        // Do not use database column names when testing in Postman. mb
     public ResponseEntity<Sticker> addSticker(@RequestBody Sticker sticker) {
         return ResponseEntity.ok(stickerService.addSticker(sticker));
     }
