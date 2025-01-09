@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/camera_screen.dart';
+import 'package:frontend/screens/recipe_screen.dart';
 import 'design.dart';
 import 'homepage.dart';
 import 'transition.dart';
@@ -49,14 +51,22 @@ class LetsCook01Content extends StatelessWidget {
                 GestureDetector(
                   onTap: () {
                     Navigator.of(context)
-                        .push(fadeTransition(const LetsCook03Content()));
+                        .push(fadeTransition(CameraPage()));
                   },
                   child: canvaImage('scan_ingredients.png',
                       width: 150, height: 150),
                 ),
                 const SizedBox(height: 1),
-                canvaImage('browse_recipes.png', width: 150, height: 150),
-                const SizedBox(height: 1),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context)
+                        .push(fadeTransition(const LetsCook03Content(recipes: [],)));
+                  },
+                  child: canvaImage('browse_recipes.png',
+                      width: 150, height: 150),
+                ),
+                // canvaImage('browse_recipes.png', width: 150, height: 150),
+                // const SizedBox(height: 1),
               ],
             ),
           ),
