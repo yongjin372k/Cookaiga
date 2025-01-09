@@ -25,7 +25,7 @@ public class User {
     @Column(name = "fullname")
     private String fullname;
 
-    @Column(name = "points")
+    @Column(name = "points")                        // Also Known As Coins
     private int points = 0;
 
     @Column(name = "created_at")

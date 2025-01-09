@@ -129,26 +129,31 @@ class _CameraPageState extends State<CameraPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Camera preview
-          _capturedImage != null
-              ? Image.file(
-                  _capturedImage!,
-                  fit: BoxFit.cover,
-                  height: double.infinity,
-                  width: double.infinity,
-                )
-              : _isCameraInitialized
-                  ? CameraPreview(_cameraController!)
-                  : Container(
-                      color: Colors.black,
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+          // Full-Screen Camera Preview
+          if (_isCameraInitialized)
+            SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.width * _cameraController!.value.aspectRatio,
+                  child: CameraPreview(_cameraController!),
+                ),
+              ),
+            )
+          else
+            Container(
+              color: Colors.black,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
+              ),
+            ),
 
-          // Translucent overlay
+          // Translucent overlay for controls
           Positioned(
             bottom: 0,
             left: 0,
@@ -195,4 +200,5 @@ class _CameraPageState extends State<CameraPage> {
       ),
     );
   }
+
 }

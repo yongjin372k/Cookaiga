@@ -41,7 +41,7 @@ public class UserController {
         }
     }
 
-    // Update user points
+    // Update user points                          !! This ADDS additional points !! NOT OVERWRITE
     @PutMapping("/{userID}/points")
     public ResponseEntity<User> updateUserPoints(@PathVariable int userID, @RequestParam int points) {
         try {
