@@ -22,6 +22,14 @@ MaterialColor createMaterialColor(Color color) {
   return MaterialColor(color.value, swatch);
 }
 
+const TextStyle textPageHeader = TextStyle(
+  // This is used in labelling headers
+  fontSize: 36,
+  color: Color.fromRGBO(255, 255, 255, 1),
+  height: 1,
+  fontFamily: 'Chewy', // Reference the family name in pubspec.yaml
+);
+
 const TextStyle textHeader = TextStyle(
   // This is used in labelling headers
   fontSize: 22,

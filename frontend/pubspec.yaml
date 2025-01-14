@@ -100,6 +100,28 @@ flutter:
     - assets/logo/splashscreen_three.png
     - assets/logo/splashscreen_two.png
     - assets/logo/view_my_kitchen.png
+    - assets/logo/cart_icon.png
+    - assets/logo/common_sticker.png
+    - assets/logo/legendary_sticker.png
+    - assets/logo/profile_icon.png
+    - assets/logo/rare_sticker.png
+    - assets/logo/special_sticker.png
+    - assets/posts/sample_post_01.jpg
+    - assets/posts/sample_post_02.jpg
+    - assets/posts/sample_post_03.jpg
+    - assets/posts/sample_post_04.jpg
+    - assets/posts/sample_post_05.jpg
+    - assets/posts/sample_post_06.jpg
+    - assets/posts/sample_post_07.jpg
+    - assets/posts/sample_post_08.jpg
+    - assets/posts/sample_post_09.jpg
+    - assets/posts/sample_post_10.jpg
+    - assets/stix/sample_sticks_01.png
+    - assets/stix/sample_sticks_02.png
+    - assets/stix/sample_sticks_03.png
+    - assets/stix/sample_sticks_04.png
+    - assets/stix/sample_sticks_05.png
+    
 
   # To add assets to your application, add an assets section, like this:
   # assets:

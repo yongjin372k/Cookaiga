@@ -20,7 +20,7 @@ class LetsCook06Content extends StatelessWidget {
         children: [
           // Row for Top-Left and Top-Right Images
           Positioned(
-            top: 10, // Adjust vertical position
+            top: 20, // Adjust vertical position
             left: 10, // Adjust left margin
             right: 10, // Adjust right margin
             child: Row(
@@ -51,18 +51,18 @@ class LetsCook06Content extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 10),
+                //const SizedBox(height: 10),
                 const Text(
                   "Instructions: ",
-                  style: textHeader,
+                  style: textPageHeader,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 20),
-                canvaImage('instructions_child.png', width: 150, height: 150),
-                const SizedBox(height: 10),
-                canvaImage('instructions_parent.png', width: 150, height: 150),
-                const SizedBox(height: 10),
-                canvaImage('instructions_everyone.png', width: 150, height: 150),
+                //const SizedBox(height: 20),
+                canvaImage('instructions_child.png', width: 175, height: 175),
+                //const SizedBox(height: 1),
+                canvaImage('instructions_parent.png', width: 175, height: 175),
+                //const SizedBox(height: 10),
+                canvaImage('instructions_everyone.png', width: 175, height: 175),
               ],
             ),
           ),
@@ -79,13 +79,13 @@ class LetsCook06Content extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
                     side: const BorderSide(color: Colors.white, width: 2),
                   ),
                 ),
                 child: const Text(
-                  "let's cook",
-                  style: textBody,
+                  "let's cook!",
+                  style: textHeader,
                 ),
               ),
             ),

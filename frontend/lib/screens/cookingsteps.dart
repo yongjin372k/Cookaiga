@@ -93,7 +93,7 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 40), // Add small space between content and motivation
+                              const SizedBox(height: 20), // Add small space between content and motivation
                               // Motivational Text
                               if (motivation.isNotEmpty)
                                 Text(
@@ -161,6 +161,7 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF336A84),
                         borderRadius: BorderRadius.circular(20),
+                        //const BorderSide(color: Colors.white, width: 2),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 55),
                       child: Text(

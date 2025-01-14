@@ -56,7 +56,7 @@ class OverviewRecipe extends StatelessWidget {
         children: [
           // Back Button Positioned
           Positioned(
-            top: 10,
+            top: 20,
             left: 10,
             right: 10,
             child: Row(
@@ -78,10 +78,10 @@ class OverviewRecipe extends StatelessWidget {
               const SizedBox(height: 60), // Space below the back button
               const Text(
                 "Overview",
-                style: textHeader,
+                style: textPageHeader,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40), // Add some spacing
+              const SizedBox(height: 10), // Add some spacing
               Expanded(
                 child: Center(
                   child: Card(
@@ -117,7 +117,7 @@ class OverviewRecipe extends StatelessWidget {
                                 style: textBody,
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 15),
+                              const SizedBox(height: 20),
                               const Text(
                                 "Required Items",
                                 style: textHeader,

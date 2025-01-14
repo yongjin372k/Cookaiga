@@ -22,7 +22,7 @@ class LetsCook05Content extends StatelessWidget {
         children: [
           // Row for Top-Left and Top-Right Images
           Positioned(
-            top: 10, // Adjust vertical position
+            top: 20, // Adjust vertical position
             left: 10, // Adjust left margin
             right: 10, // Adjust right margin
             child: Row(
@@ -48,20 +48,20 @@ class LetsCook05Content extends StatelessWidget {
                 const SizedBox(height: 10),
                 const Text(
                   "Who are you \ncooking with?",
-                  style: textHeader,
+                  style: textPageHeader,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
                 GestureDetector(
                   onTap:onNext,
                   child: canvaImage('cooking_with_parent.png',
-                      width: 150, height: 150),
+                      width: 200, height: 200),
                 ),
                 const SizedBox(height: 1),
                 GestureDetector(
                   onTap: onNext,
                   child: canvaImage('cooking_alone.png',
-                      width: 150, height: 150),
+                      width: 200, height: 200),
                 ),
                 // canvaImage('browse_recipes.png', width: 150, height: 150),
                 // const SizedBox(height: 1),

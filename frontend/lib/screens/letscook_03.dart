@@ -218,7 +218,7 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
                   primary: const Color(0xFF336A84),
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),

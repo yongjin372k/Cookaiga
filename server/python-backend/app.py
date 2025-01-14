@@ -13,6 +13,7 @@ CORS(app)
 # Set your OpenAI API key
 
 
+
 # Connect to MySQL Database
 conn = mysql.connector.connect(
     host="localhost",
