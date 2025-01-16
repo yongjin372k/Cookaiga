@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/mykitchen_01.dart';
+import 'package:frontend/screens/community_screen.dart'; // Import CommunityPage
 import 'design.dart';
 import 'letscook_01.dart';
 
@@ -97,18 +98,17 @@ class HomePageContent extends StatelessWidget {
                       width: 140, height: 140),
                 ),
                 const SizedBox(height: 1),
-                // GestureDetector(
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(
-                //           builder: (context) => const LetsCook01Content()),
-                //     );
-                //   },
-                //   child: canvaImage('hello_my_community.png',
-                //       width: 140, height: 140),
-                // ), TODO: Create frontend for myCommunity
-                canvaImage('hello_my_community.png', width: 140, height: 140),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const CommunityPage()),
+                    );
+                  },
+                  child: canvaImage('hello_my_community.png',
+                      width: 140, height: 140),
+                ),
                 const SizedBox(height: 1),
               ],
             ),

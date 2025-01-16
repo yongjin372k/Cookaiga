@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/design.dart';
+import 'package:frontend/screens/design.dart'; // For canvaImage
+import 'package:frontend/screens/homepage.dart'; // For HomePage
+import 'package:frontend/screens/share_screen.dart'; // For SharePage
 import 'package:http/http.dart' as http;
 
 // Model class for a post
@@ -75,7 +77,11 @@ class _CommunityPageState extends State<CommunityPage> {
         elevation: 0,
         leading: GestureDetector(
           onTap: () {
-            Navigator.pop(context);
+            // Navigate to HomePage when the back button is tapped
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+            );
           },
           child: canvaImage('back_arrow.png', width: 50, height: 50),
         ),
@@ -102,7 +108,11 @@ class _CommunityPageState extends State<CommunityPage> {
                   // Share a Photo Button
                   ElevatedButton(
                     onPressed: () {
-                      // Handle share a photo logic
+                      // Navigate to SharePage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SharePage()),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -123,37 +133,70 @@ class _CommunityPageState extends State<CommunityPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // Horizontal Photos Scroller
+
+                  // Horizontal Scroller with Two Rows of Photos
                   if (posts.isNotEmpty)
                     SizedBox(
-                      height: 200, // Adjust height of the photo section
+                      height: 450, // Height to accommodate two rows
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        itemCount: posts.length,
-                        itemBuilder: (context, index) {
-                          final post = posts[index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.asset(
-                                post.imagePath,
-                                width: 150, // Width of each photo
-                                height: 200, // Height of each photo
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey,
-                                    width: 150,
-                                    height: 200,
-                                    child: const Icon(
-                                      Icons.error,
-                                      color: Colors.red,
+                        itemCount: (posts.length / 2).ceil(), // Divide posts into two columns
+                        itemBuilder: (context, columnIndex) {
+                          // Generate two rows per column
+                          final int firstRowIndex = columnIndex * 2;
+                          final int secondRowIndex = firstRowIndex + 1;
+
+                          return Column(
+                            children: [
+                              if (firstRowIndex < posts.length) // First Row
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.asset(
+                                      posts[firstRowIndex].imagePath,
+                                      width: 180,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          color: Colors.grey,
+                                          width: 180,
+                                          height: 200,
+                                          child: const Icon(
+                                            Icons.error,
+                                            color: Colors.red,
+                                          ),
+                                        );
+                                      },
                                     ),
-                                  );
-                                },
-                              ),
-                            ),
+                                  ),
+                                ),
+                              if (secondRowIndex < posts.length) // Second Row
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.asset(
+                                      posts[secondRowIndex].imagePath,
+                                      width: 180,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          color: Colors.grey,
+                                          width: 180,
+                                          height: 200,
+                                          child: const Icon(
+                                            Icons.error,
+                                            color: Colors.red,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                            ],
                           );
                         },
                       ),
@@ -169,46 +212,50 @@ class _CommunityPageState extends State<CommunityPage> {
                         ),
                       ),
                     ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12), // Reduced gap between images and bottom container
+
                   // Total Photos Shared Section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFAED8C0), // Light green background
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Total photos shared by the community:',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.black,
-                            fontFamily: 'Chewy',
+                  Padding(
+                    padding: const EdgeInsets.all(20.0), // Increased padding for bottom container
+                    child: Container(
+                      padding: const EdgeInsets.all(24), // Increased inner padding
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFAED8C0), // Light green background
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Total photos shared by the community:',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.black,
+                              fontFamily: 'Chewy',
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${posts.length}',
-                          style: const TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontFamily: 'Chewy',
+                          const SizedBox(height: 8),
+                          Text(
+                            '${posts.length}',
+                            style: const TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontFamily: 'Chewy',
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          "Do you know? For every 100 photos shared, \$1 will be donated to SPARKS (Singapore).",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black,
-                            fontFamily: 'Chewy',
+                          const SizedBox(height: 8),
+                          const Text(
+                            "Do you know? For every 100 photos shared, \$1 will be donated to SPARKS (Singapore).",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black,
+                              fontFamily: 'Chewy',
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -216,5 +263,4 @@ class _CommunityPageState extends State<CommunityPage> {
             ),
     );
   }
-
 }

@@ -38,6 +38,7 @@ dependencies:
   http: ^1.1.0
   camera: ^0.10.5+9
   image_picker: ^1.0.8
+  path_provider: ^2.0.12
 
 dev_dependencies:
   flutter_test:
@@ -100,6 +101,7 @@ flutter:
     - assets/logo/splashscreen_three.png
     - assets/logo/splashscreen_two.png
     - assets/logo/view_my_kitchen.png
+    - assets/posts/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
