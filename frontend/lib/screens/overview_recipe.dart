@@ -155,6 +155,7 @@ class OverviewRecipe extends StatelessWidget {
                                     builder: (context) => CookingStepsScreen(
                                       steps: steps,
                                       isCookingAlone: true,
+                                      recipeName: recipeName,
                                     ),
                                   ),
                                 );
@@ -170,6 +171,7 @@ class OverviewRecipe extends StatelessWidget {
                                             builder: (context) => CookingStepsScreen(
                                               steps: steps,
                                               isCookingAlone: false,
+                                              recipeName: recipeName,
                                             ),
                                           ),
                                         );
