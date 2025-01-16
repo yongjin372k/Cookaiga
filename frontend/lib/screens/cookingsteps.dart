@@ -1,13 +1,14 @@
 import 'dart:async'; // For Timer
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/design.dart';
-import 'package:vibration/vibration.dart';
+import 'package:frontend/screens/letscook_10.dart';
 
 class CookingStepsScreen extends StatefulWidget {
   final List<Map<String, String>> steps;
   final bool isCookingAlone; // New parameter to differentiate modes
+  final String recipeName; // Add recipeName parameter
 
-  const CookingStepsScreen({Key? key, required this.steps, required this.isCookingAlone}) : super(key: key);
+  const CookingStepsScreen({Key? key, required this.steps, required this.isCookingAlone, required this.recipeName}) : super(key: key);
 
   @override
   _CookingStepsScreenState createState() => _CookingStepsScreenState();
@@ -127,7 +128,7 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
           break;
         default:
           backgroundColor = Colors.white; // Default background color
-          imagePath = 'instructions_everyone.png';
+          imagePath = '';
           break;
       }
     }
@@ -259,7 +260,18 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                           _startTimer(); // Start a new timer
                         });
                       } else {
-                        Navigator.pop(context);
+                        setState(() {
+                          _timer?.cancel();
+                        });
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LetsCook10Content(
+                              recipeName: widget.recipeName, // Pass the recipe name
+                              coinsEarned: 20, // Pass default coins earned
+                            ),
+                          ),
+                        );
                       }
                     },
                     child: Container(
