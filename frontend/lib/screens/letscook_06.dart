@@ -19,32 +19,32 @@ class LetsCook06Content extends StatelessWidget {
       body: Stack(
         children: [
           // Row for Top-Left and Top-Right Images
-          Positioned(
-            top: 10, // Adjust vertical position
-            left: 10, // Adjust left margin
-            right: 10, // Adjust right margin
-            child: Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween, // Space between the two items
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      fadeTransition(
-                        LetsCook05Content(
-                          onNext: () {
-                            // Define what should happen when 'onNext' is called
-                            Navigator.of(context).pop(); // Example action
-                          },
-                        ),
-                      ),
-                    );
-                  },
-                  child: canvaImage('back_arrow.png', width: 50, height: 50),
-                ),
-              ],
-            ),
-          ),
+          // Positioned(
+          //   top: 10, // Adjust vertical position
+          //   left: 10, // Adjust left margin
+          //   right: 10, // Adjust right margin
+          //   child: Row(
+          //     mainAxisAlignment:
+          //         MainAxisAlignment.spaceBetween, // Space between the two items
+          //     children: [
+          //       GestureDetector(
+          //         onTap: () {
+          //           Navigator.of(context).push(
+          //             fadeTransition(
+          //               LetsCook05Content(
+          //                 onNext: () {
+          //                   // Define what should happen when 'onNext' is called
+          //                   Navigator.of(context).pop(); // Example action
+          //                 },
+          //               ),
+          //             ),
+          //           );
+          //         },
+          //         child: canvaImage('back_arrow.png', width: 50, height: 50),
+          //       ),
+          //     ],
+          //   ),
+          // ),
 
           // Main Content at the Center
           Center(
