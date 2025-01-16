@@ -10,8 +10,9 @@ import 'letscook_03.dart';
 import 'letscook_06.dart';
 
 class LetsCook05Content extends StatelessWidget {
-  const LetsCook05Content({Key? key, required this.onNext}) : super(key: key);
-  final VoidCallback onNext;
+  final Function(bool isCookingAlone) onModeSelected;
+
+  const LetsCook05Content({Key? key, required this.onModeSelected}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -53,13 +54,13 @@ class LetsCook05Content extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 GestureDetector(
-                  onTap:onNext,
+                  onTap: () => onModeSelected(false),
                   child: canvaImage('cooking_with_parent.png',
                       width: 150, height: 150),
                 ),
                 const SizedBox(height: 1),
                 GestureDetector(
-                  onTap: onNext,
+                  onTap: () => onModeSelected(true),
                   child: canvaImage('cooking_alone.png',
                       width: 150, height: 150),
                 ),

@@ -38,6 +38,7 @@ dependencies:
   http: ^1.1.0
   camera: ^0.10.5+9
   image_picker: ^1.0.8
+  vibration: ^1.7.3
 
 dev_dependencies:
   flutter_test:
