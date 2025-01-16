@@ -68,6 +68,54 @@ class _CommunityPageState extends State<CommunityPage> {
     }
   }
 
+  // Build image widget for both backend and frontend images
+  Widget _buildImage(String imagePath) {
+    // Check if the image is stored on the frontend
+    if (!imagePath.startsWith('/assets/posts/')) {
+      // Directly try to load it as a frontend asset
+      return Image.asset(
+        imagePath,
+        width: 180,
+        height: 200,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          print("Error loading frontend asset: $imagePath. Falling back to backend.");
+          // If the frontend asset fails, fallback to backend
+          final String fileName = imagePath.split('/').last; // Extract the file name
+          return _buildBackendImage(fileName);
+        },
+      );
+    } else {
+      // For paths starting with /assets/posts/, assume they are backend images
+      final String fileName = imagePath.replaceFirst('/assets/posts/', '');
+      return _buildBackendImage(fileName);
+    }
+  }
+
+  // Helper method to build an image widget from the backend
+  Widget _buildBackendImage(String fileName) {
+    final String backendUrl = "http://10.0.2.2:8080/api/files/$fileName";
+    print("Fetching backend image: $backendUrl");
+
+    return Image.network(
+      backendUrl,
+      width: 180,
+      height: 200,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        print("Error loading backend image: $backendUrl");
+        return Container(
+          color: Colors.grey,
+          width: 180,
+          height: 200,
+          child: const Icon(Icons.error, color: Colors.red),
+        );
+      },
+    );
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,69 +182,20 @@ class _CommunityPageState extends State<CommunityPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Horizontal Scroller with Two Rows of Photos
+                  // Horizontal Scroller with Photos
                   if (posts.isNotEmpty)
                     SizedBox(
                       height: 450, // Height to accommodate two rows
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        itemCount: (posts.length / 2).ceil(), // Divide posts into two columns
-                        itemBuilder: (context, columnIndex) {
-                          // Generate two rows per column
-                          final int firstRowIndex = columnIndex * 2;
-                          final int secondRowIndex = firstRowIndex + 1;
-
-                          return Column(
-                            children: [
-                              if (firstRowIndex < posts.length) // First Row
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Image.asset(
-                                      posts[firstRowIndex].imagePath,
-                                      width: 180,
-                                      height: 200,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          color: Colors.grey,
-                                          width: 180,
-                                          height: 200,
-                                          child: const Icon(
-                                            Icons.error,
-                                            color: Colors.red,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              if (secondRowIndex < posts.length) // Second Row
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Image.asset(
-                                      posts[secondRowIndex].imagePath,
-                                      width: 180,
-                                      height: 200,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          color: Colors.grey,
-                                          width: 180,
-                                          height: 200,
-                                          child: const Icon(
-                                            Icons.error,
-                                            color: Colors.red,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                            ],
+                        itemCount: posts.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: _buildImage(posts[index].imagePath),
+                            ),
                           );
                         },
                       ),
