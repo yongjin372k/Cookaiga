@@ -70,9 +70,8 @@ class _CommunityPageState extends State<CommunityPage> {
 
   // Build image widget for both backend and frontend images
   Widget _buildImage(String imagePath) {
-    // Check if the image is stored on the frontend
     if (!imagePath.startsWith('/assets/posts/')) {
-      // Directly try to load it as a frontend asset
+      // Attempt to load a frontend asset
       return Image.asset(
         imagePath,
         width: 180,
@@ -80,13 +79,12 @@ class _CommunityPageState extends State<CommunityPage> {
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
           print("Error loading frontend asset: $imagePath. Falling back to backend.");
-          // If the frontend asset fails, fallback to backend
-          final String fileName = imagePath.split('/').last; // Extract the file name
-          return _buildBackendImage(fileName);
+          final String fileName = imagePath.split('/').last;
+          return _buildBackendImage(fileName); // Fallback to backend
         },
       );
     } else {
-      // For paths starting with /assets/posts/, assume they are backend images
+      // For backend images
       final String fileName = imagePath.replaceFirst('/assets/posts/', '');
       return _buildBackendImage(fileName);
     }
@@ -102,6 +100,10 @@ class _CommunityPageState extends State<CommunityPage> {
       width: 180,
       height: 200,
       fit: BoxFit.cover,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return const Center(child: CircularProgressIndicator());
+      },
       errorBuilder: (context, error, stackTrace) {
         print("Error loading backend image: $backendUrl");
         return Container(
@@ -114,18 +116,15 @@ class _CommunityPageState extends State<CommunityPage> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF5B98A9), // Page background color
+      backgroundColor: const Color(0xFF5B98A9),
       appBar: AppBar(
         backgroundColor: const Color(0xFF5B98A9),
         elevation: 0,
         leading: GestureDetector(
           onTap: () {
-            // Navigate to HomePage when the back button is tapped
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => HomePage()),
@@ -142,7 +141,6 @@ class _CommunityPageState extends State<CommunityPage> {
               child: Column(
                 children: [
                   const SizedBox(height: 16),
-                  // Title
                   const Text(
                     'COOKAiGA Connect',
                     style: TextStyle(
@@ -153,10 +151,10 @@ class _CommunityPageState extends State<CommunityPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
+
                   // Share a Photo Button
                   ElevatedButton(
                     onPressed: () {
-                      // Navigate to SharePage
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const SharePage()),
@@ -182,20 +180,36 @@ class _CommunityPageState extends State<CommunityPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Horizontal Scroller with Photos
+                  // Horizontal synchronized scrolling rows
                   if (posts.isNotEmpty)
                     SizedBox(
-                      height: 450, // Height to accommodate two rows
+                      height: 450,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        itemCount: posts.length,
+                        itemCount: (posts.length / 2).ceil(),
                         itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: _buildImage(posts[index].imagePath),
-                            ),
+                          final int firstRowIndex = index * 2;
+                          final int secondRowIndex = firstRowIndex + 1;
+
+                          return Column(
+                            children: [
+                              if (firstRowIndex < posts.length)
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: _buildImage(posts[firstRowIndex].imagePath),
+                                  ),
+                                ),
+                              if (secondRowIndex < posts.length)
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: _buildImage(posts[secondRowIndex].imagePath),
+                                  ),
+                                ),
+                            ],
                           );
                         },
                       ),
@@ -211,15 +225,15 @@ class _CommunityPageState extends State<CommunityPage> {
                         ),
                       ),
                     ),
-                  const SizedBox(height: 12), // Reduced gap between images and bottom container
+                  const SizedBox(height: 12),
 
                   // Total Photos Shared Section
                   Padding(
-                    padding: const EdgeInsets.all(20.0), // Increased padding for bottom container
+                    padding: const EdgeInsets.all(20.0),
                     child: Container(
-                      padding: const EdgeInsets.all(24), // Increased inner padding
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFAED8C0), // Light green background
+                        color: const Color(0xFFAED8C0),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Column(

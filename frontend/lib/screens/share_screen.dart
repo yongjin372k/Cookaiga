@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/screens/homepage.dart'; // For navigation to HomePage
 import 'package:frontend/screens/design.dart'; // For canvaImage
+import 'package:frontend/screens/community_screen.dart'; // Import the CommunityPage
 
 class SharePage extends StatefulWidget {
   const SharePage({Key? key}) : super(key: key);
@@ -58,9 +59,12 @@ class _SharePageState extends State<SharePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Photo shared successfully!")),
         );
-        setState(() {
-          _selectedImage = null;
-        });
+
+        // Navigate to CommunityPage
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const CommunityPage()),
+        );
       } else {
         print("Failed to share photo. Status code: ${response.statusCode}");
         ScaffoldMessenger.of(context).showSnackBar(
