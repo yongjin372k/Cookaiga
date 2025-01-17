@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/main.dart';
 import 'package:frontend/screens/cookingsteps.dart';
 import 'package:frontend/screens/design.dart';
 import 'package:frontend/screens/letscook_05.dart';
@@ -20,7 +21,7 @@ class OverviewRecipe extends StatelessWidget {
 
   Future<List<Map<String, String>>> fetchSteps(String recipeName, String ingredients) async {
     try {
-      final url = Uri.parse('http://10.0.2.2:5000/generate-recipe-steps');
+      final url = Uri.parse('$URL2/generate-recipe-steps');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},

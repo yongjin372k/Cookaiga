@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:frontend/main.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'design.dart';
@@ -18,7 +19,7 @@ class LetsCook10Content extends StatelessWidget {
   Future<void> _updateUserPoints() async {
     const int userID = 1; // Replace with the actual user ID
     const int pointsToAdd = 20;
-    final String apiUrl = "http://10.0.2.2:8080/api/users/$userID/points?points=$pointsToAdd";
+    final String apiUrl = "$URL/api/users/$userID/points?points=$pointsToAdd";
 
     try {
       final response = await http.put(

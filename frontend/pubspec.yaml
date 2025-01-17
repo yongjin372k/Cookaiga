@@ -104,6 +104,11 @@ flutter:
     - assets/logo/splashscreen_three.png
     - assets/logo/splashscreen_two.png
     - assets/logo/view_my_kitchen.png
+    - assets/logo/cart_icon.png
+    - assets/logo/common_sticker.png
+    - assets/logo/rare_sticker.png
+    - assets/logo/special_sticker.png
+    - assets/logo/legendary_sticker.png
     - assets/posts/
 
   # To add assets to your application, add an assets section, like this:

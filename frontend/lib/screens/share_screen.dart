@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:frontend/main.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/screens/homepage.dart'; // For navigation to HomePage
@@ -42,7 +43,7 @@ class _SharePageState extends State<SharePage> {
 
     try {
       // Backend API endpoint
-      const String apiUrl = "http://10.0.2.2:8080/api/posts/upload";
+      final String apiUrl = "$URL/api/posts/upload";
 
       // Create a multipart request
       var request = http.MultipartRequest('POST', Uri.parse(apiUrl))
