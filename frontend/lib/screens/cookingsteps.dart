@@ -110,7 +110,7 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
     if (widget.isCookingAlone) {
       // Default color for "Cooking Alone"
       backgroundColor = const Color(0xFFFCD4E4); // Change this to your preferred default color
-      imagePath = 'cooking_alone_logo.png'; // Use the default image
+      imagePath = 'cookingalone_logo.png'; // Use the default image
     } else {
       // Determine background color and image based on the category
       switch (category) {
