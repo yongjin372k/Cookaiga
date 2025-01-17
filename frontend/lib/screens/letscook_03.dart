@@ -72,7 +72,7 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
   Future<void> fetchRecipeOverview(String recipeName) async {
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:5000/generate-recipe-overview'),
+        Uri.parse('$URL2/generate-recipe-overview'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"recipe_name": recipeName}),
       );
