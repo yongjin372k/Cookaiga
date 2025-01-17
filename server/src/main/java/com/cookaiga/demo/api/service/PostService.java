@@ -5,6 +5,7 @@ import com.cookaiga.demo.api.repository.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,20 +17,21 @@ public class PostService {
 
     // Retrieve all posts
     public List<Post> getAllPosts() {
-        return postRepository.findAll();
+        return postRepository.findAllPosts();
     }
 
     // Retrieve a post by ID
     public Optional<Post> getPostById(int postID) {
-        return postRepository.findById(postID);
+        return Optional.ofNullable(postRepository.findPostById(postID));
     }
 
-    // Create or update a post
-    public Post createOrUpdatePost(Post post) {
-        return postRepository.save(post);
+    // Upload a new post
+    public void uploadPost(int userID, String imagePath) {
+        LocalDateTime postDate = LocalDateTime.now();
+        postRepository.insertPost(userID, imagePath, "", postDate.toString());
     }
 
-    // Get all posts by userID
+    // Retrieve all posts by a specific user
     public List<Post> getAllPostsByUserId(int userID) {
         return postRepository.findAllPostsByUserId(userID);
     }
@@ -42,5 +44,4 @@ public class PostService {
             throw new RuntimeException("Post not found with ID: " + postID);
         }
     }
-
 }
