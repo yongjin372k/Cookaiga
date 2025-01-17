@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/mykitchen_01.dart';
 import 'package:frontend/screens/community_screen.dart'; // Import CommunityPage
 import 'design.dart';
 import 'letscook_01.dart';
+import 'package:http/http.dart' as http;
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -12,15 +14,49 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       backgroundColor:
           createMaterialColor(const Color(0xFF000000)), // Outer background
-      body: Center(
-        child: const HomePageContent(),
+      body: const Center(
+        child: HomePageContent(),
       ),
     );
   }
 }
 
-class HomePageContent extends StatelessWidget {
+class HomePageContent extends StatefulWidget {
   const HomePageContent({super.key});
+
+  @override
+  _HomePageContentState createState() => _HomePageContentState();
+}
+
+class _HomePageContentState extends State<HomePageContent> {
+  late Future<int> _userPoints; // Future to store user points
+
+  @override
+  void initState() {
+    super.initState();
+    _userPoints = _fetchUserPoints(); // Initialize the future
+  }
+
+  // Function to fetch user points from the backend
+  Future<int> _fetchUserPoints() async {
+    const int userID = 1; // Replace with the actual user ID
+    const String apiUrl = "http://10.0.2.2:8080/api/users/$userID";
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['points']; // Assuming the response contains a `points` field
+      } else {
+        print("Failed to fetch user points. Status Code: ${response.statusCode}");
+        return 0; // Default to 0 on failure
+      }
+    } catch (e) {
+      print("Error fetching user points: $e");
+      return 0; // Default to 0 on exception
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,11 +86,29 @@ class HomePageContent extends StatelessWidget {
                     children: [
                       // Coin Image
                       canvaImage('reward_coin.png', width: 20, height: 20),
-                      const SizedBox(
-                          width: 8), // Add spacing between coin and text
-                      Text(
-                        '999', // Replace with a dynamic value if needed
-                        style: textBody,
+                      const SizedBox(width: 8), // Add spacing between coin and text
+
+                      // Dynamic Points Display
+                      FutureBuilder<int>(
+                        future: _userPoints,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Text(
+                              '...',
+                              style: textBody, // Display loading indicator
+                            );
+                          } else if (snapshot.hasError) {
+                            return const Text(
+                              'Error',
+                              style: textBody, // Display error message
+                            );
+                          } else {
+                            return Text(
+                              '${snapshot.data}', // Display fetched points
+                              style: textBody,
+                            );
+                          }
+                        },
                       ),
                     ],
                   ),

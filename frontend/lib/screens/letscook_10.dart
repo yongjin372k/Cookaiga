@@ -14,38 +14,36 @@ class LetsCook10Content extends StatelessWidget {
     required this.coinsEarned,
   }) : super(key: key);
 
-  Future<List<Map<String, String>>> fetchSteps(String recipeName, String ingredients) async {
+  // Function to update user points
+  Future<void> _updateUserPoints() async {
+    const int userID = 1; // Replace with the actual user ID
+    const int pointsToAdd = 20;
+    final String apiUrl = "http://10.0.2.2:8080/api/users/$userID/points?points=$pointsToAdd";
+
     try {
-      final url = Uri.parse('http://10.0.2.2:5000/generate-recipe-steps');
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'recipe_name': recipeName,
-          'ingredients': ingredients.split('\n'),
-        }),
+      final response = await http.put(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'}, // Optional
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final List<Map<String, String>> steps = (data['steps'] as List<dynamic>)
-            .map((step) => {
-                  'motivation': (step['motivation'] ?? "").toString(),
-                  'step': (step['step'] ?? "").toString(),
-                })
-            .toList();
-        return steps;
+        print("User points updated successfully!");
       } else {
-        throw Exception('Failed to fetch steps: ${response.statusCode}');
+        print("Failed to update user points. Status code: ${response.statusCode}");
       }
-    } catch (error) {
-      print('Error fetching steps: $error');
-      throw Exception('Could not fetch steps. Please try again later.');
+    } catch (e) {
+      print("Error updating user points: $e");
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
+    // Call _updateUserPoints when the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateUserPoints();
+    });
+
     return Scaffold(
       backgroundColor: createMaterialColor(const Color(0xFF80A6A4)),
       body: SafeArea(
