@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:frontend/main.dart';
 import 'package:frontend/screens/letscook_03.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
 
 class CameraPage extends StatefulWidget {
   @override
@@ -18,7 +20,7 @@ class _CameraPageState extends State<CameraPage> {
   File? _selectedImage;
   bool _isCameraInitialized = false;
 
-  final String apiUrl = "http://10.0.2.2:8080/api/image-analysis/analyze"; // Base API URL
+  final String apiUrl = "$URL/api/image-analysis/analyze"; // Base API URL
   final int userId = 1; // Example userID (make this dynamic if needed)
 
   @override
@@ -97,7 +99,7 @@ class _CameraPageState extends State<CameraPage> {
 
         // Fetch generated recipes directly from the backend
         final recipeResponse = await http.get(
-          Uri.parse('http://10.0.2.2:5000/api/kitchen-list?userID=1'),
+          Uri.parse('$URL2/api/kitchen-list?userID=1'),
           headers: {"Content-Type": "application/json"},
         );
 

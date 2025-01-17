@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:frontend/main.dart';
 import 'package:frontend/screens/mykitchen_01.dart';
 import 'package:frontend/screens/community_screen.dart'; // Import CommunityPage
+import 'package:frontend/screens/rewards.dart'; // Import StickerCollectionPage
 import 'design.dart';
 import 'letscook_01.dart';
 import 'package:http/http.dart' as http;
@@ -40,7 +42,7 @@ class _HomePageContentState extends State<HomePageContent> {
   // Function to fetch user points from the backend
   Future<int> _fetchUserPoints() async {
     const int userID = 1; // Replace with the actual user ID
-    const String apiUrl = "http://10.0.2.2:8080/api/users/$userID";
+    final String apiUrl = "$URL/api/users/$userID";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -74,43 +76,54 @@ class _HomePageContentState extends State<HomePageContent> {
                   MainAxisAlignment.spaceBetween, // Space between the two items
               children: [
                 canvaImage('menu_button.png', width: 50, height: 50),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: createMaterialColor(const Color(0xFF336B89)),
-                    borderRadius:
-                        BorderRadius.circular(10), // Optional rounded corners
-                  ),
-                  child: Row(
-                    children: [
-                      // Coin Image
-                      canvaImage('reward_coin.png', width: 20, height: 20),
-                      const SizedBox(width: 8), // Add spacing between coin and text
+                GestureDetector(
+                  onTap: () {
+                    // Navigate to StickerCollectionPage when tapped
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const StickerCollectionPage()),
+                    );
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: createMaterialColor(const Color(0xFF336B89)),
+                      borderRadius:
+                          BorderRadius.circular(10), // Optional rounded corners
+                    ),
+                    child: Row(
+                      children: [
+                        // Coin Image
+                        canvaImage('reward_coin.png', width: 20, height: 20),
+                        const SizedBox(width: 8), // Add spacing between coin and text
 
-                      // Dynamic Points Display
-                      FutureBuilder<int>(
-                        future: _userPoints,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Text(
-                              '...',
-                              style: textBody, // Display loading indicator
-                            );
-                          } else if (snapshot.hasError) {
-                            return const Text(
-                              'Error',
-                              style: textBody, // Display error message
-                            );
-                          } else {
-                            return Text(
-                              '${snapshot.data}', // Display fetched points
-                              style: textBody,
-                            );
-                          }
-                        },
-                      ),
-                    ],
+                        // Dynamic Points Display
+                        FutureBuilder<int>(
+                          future: _userPoints,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Text(
+                                '...',
+                                style: textBody, // Display loading indicator
+                              );
+                            } else if (snapshot.hasError) {
+                              return const Text(
+                                'Error',
+                                style: textBody, // Display error message
+                              );
+                            } else {
+                              return Text(
+                                '${snapshot.data}', // Display fetched points
+                                style: textBody,
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

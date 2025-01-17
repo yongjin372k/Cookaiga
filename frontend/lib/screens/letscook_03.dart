@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/main.dart';
 import 'design.dart';
 import 'letscook_01.dart';
 import 'transition.dart';
@@ -42,7 +43,7 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
     try {
       // Fetch recipes from backend
       final recipeResponse = await http.post(
-        Uri.parse('http://10.0.2.2:8080/api/recipes/generate-from-database'),
+        Uri.parse('$URL/api/recipes/generate-from-database'),
         headers: {"Content-Type": "application/json"},
       );
 

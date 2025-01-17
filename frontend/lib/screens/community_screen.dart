@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:frontend/main.dart';
 import 'package:frontend/screens/design.dart'; // For canvaImage
 import 'package:frontend/screens/homepage.dart'; // For HomePage
 import 'package:frontend/screens/share_screen.dart'; // For SharePage
 import 'package:http/http.dart' as http;
+import 'dart:async';
 
 // Model class for a post
 class Post {
@@ -49,7 +51,7 @@ class _CommunityPageState extends State<CommunityPage> {
 
   // Fetch posts from the backend
   Future<void> _fetchPosts() async {
-    const String apiUrl = "http://10.0.2.2:8080/api/posts"; // Backend endpoint
+    final String apiUrl = "$URL/api/posts"; // Backend endpoint
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -92,7 +94,7 @@ class _CommunityPageState extends State<CommunityPage> {
 
   // Helper method to build an image widget from the backend
   Widget _buildBackendImage(String fileName) {
-    final String backendUrl = "http://10.0.2.2:8080/api/files/$fileName";
+    final String backendUrl = "$URL/api/files/$fileName";
     print("Fetching backend image: $backendUrl");
 
     return Image.network(
