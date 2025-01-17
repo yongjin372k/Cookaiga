@@ -147,24 +147,39 @@ class OverviewRecipe extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => LetsCook05Content(
-                            onNext: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => LetsCook06Content(
-                                    onNext: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => CookingStepsScreen(
-                                            steps: steps,
-                                          ),
-                                        ),
-                                      );
-                                    },
+                            onModeSelected: (isCookingAlone) {
+                              if (isCookingAlone) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CookingStepsScreen(
+                                      steps: steps,
+                                      isCookingAlone: true,
+                                      recipeName: recipeName,
+                                    ),
                                   ),
-                                ),
-                              );
+                                );
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => LetsCook06Content(
+                                      onNext: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => CookingStepsScreen(
+                                              steps: steps,
+                                              isCookingAlone: false,
+                                              recipeName: recipeName,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }
                             },
                           ),
                         ),

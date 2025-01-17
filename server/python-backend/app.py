@@ -114,7 +114,7 @@ def generate_recipe_steps():
 
 
     prompt = f"""
-    Generate a step-by-step guide for cooking "{recipe_name}" with a focus on parent-child collaboration. Using the following ingredients: {formatted_ingredients}.Each step must include:
+    Generate a simple step-by-step guide for cooking "{recipe_name}" with a focus on parent-child collaboration. Using the following ingredients: {formatted_ingredients}.Each step must include:
     1. A "step" field with the cooking process instruction.
     2. A "motivation" field with a short, encouraging motivational message.
 
