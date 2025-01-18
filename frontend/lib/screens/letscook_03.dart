@@ -131,101 +131,116 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: createMaterialColor(const Color(0xFF80A6A4)),
-      body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(2.0),
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.of(context)
-                            .push(fadeTransition(const LetsCook01Content()));
-                      },
-                      child: canvaImage('back_arrow.png', width: 50, height: 50),
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Center(
-                    child: canvaImage('browse_recipes.png',
-                        width: 120, height: 120),
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          )
-                        : recipes.isEmpty
+      body: Stack(
+        children: [
+          // Back Button Positioned at Top-Left
+          Positioned(
+            top: 10, // Adjust vertical position
+            left: 10, // Adjust left margin
+            right: 10, // Adjust right margin
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start, // Align to left
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context)
+                        .push(fadeTransition(const LetsCook01Content()));
+                  },
+                  child: canvaImage('back_arrow.png', width: 50, height: 50),
+                ),
+              ],
+            ),
+          ),
+
+          // Main Content
+          SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 60), // Space after back button
+                      Center(
+                        child: canvaImage('browse_recipes.png',
+                            width: 120, height: 120),
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: isLoading
                             ? const Center(
-                                child: Text(
-                                  "No recipes found!",
-                                  style: textHeader,
-                                  textAlign: TextAlign.center,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
                                 ),
                               )
-                            : ListView.builder(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                itemCount: recipes.length,
-                                itemBuilder: (context, index) {
-                                  final recipe = recipes[index];
-                                  return GestureDetector(
-                                    onTap: () => fetchRecipeOverview(recipe),
-                                    child: Container(
-                                      margin: const EdgeInsets.only(bottom: 10),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 15, vertical: 30),
-                                      decoration: BoxDecoration(
-                                        color: createMaterialColor(
-                                            const Color(0xFF336B89)),
-                                        borderRadius:
-                                            BorderRadius.circular(10),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          recipe,
-                                          style: textBody,
-                                          overflow: TextOverflow.visible,
-                                          softWrap: true,
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
+                            : recipes.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      "No recipes found!",
+                                      style: textHeader,
+                                      textAlign: TextAlign.center,
                                     ),
-                                  );
-                                },
-                              ),
+                                  )
+                                : ListView.builder(
+                                    padding:
+                                        const EdgeInsets.symmetric(horizontal: 16),
+                                    itemCount: recipes.length,
+                                    itemBuilder: (context, index) {
+                                      final recipe = recipes[index];
+                                      return GestureDetector(
+                                        onTap: () => fetchRecipeOverview(recipe),
+                                        child: Container(
+                                          margin:
+                                              const EdgeInsets.only(bottom: 10),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 15, vertical: 30),
+                                          decoration: BoxDecoration(
+                                            color: createMaterialColor(
+                                                const Color(0xFF336B89)),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              recipe,
+                                              style: textBody,
+                                              overflow: TextOverflow.visible,
+                                              softWrap: true,
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  fetchRecipes();
-                },
-                child: const Text(
-                  "Generate more recipes",
-                  style: textBody,
                 ),
-                style: ElevatedButton.styleFrom(
-                  primary: const Color(0xFF336A84),
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      fetchRecipes();
+                    },
+                    child: const Text(
+                      "Generate more recipes",
+                      style: textBody,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      primary: const Color(0xFF336A84),
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

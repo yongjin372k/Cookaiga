@@ -25,7 +25,7 @@ cursor = conn.cursor()
 # API endpoint to fetch ingredients
 @app.route('/ingredients', methods=['GET'])
 def get_ingredients():
-    cursor.execute("SELECT name, quantity, unit FROM ingredients WHERE quantity > 0")
+    cursor.execute("SELECT item, quantity_with_unit, expiry FROM ingredients WHERE quantity_with_unit > 0")
     ingredients = cursor.fetchall()
     ingredients_list = [f"{row[1]} {row[2]} of {row[0]}" for row in ingredients]
     return jsonify({"ingredients": ingredients_list})
