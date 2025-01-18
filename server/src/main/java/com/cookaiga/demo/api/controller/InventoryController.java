@@ -30,6 +30,11 @@ public class InventoryController {
         return ingredientService.addOrUpdateIngredient(ingredient);
     }
 
+    @PutMapping("/{id}")
+    public Ingredients updateIngredient(@PathVariable Long id, @RequestBody Ingredients ingredient) {
+        return ingredientService.updateIngredient(id, ingredient);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteIngredient(@PathVariable Long id) {
         ingredientService.deleteIngredient(id);

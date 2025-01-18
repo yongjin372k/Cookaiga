@@ -51,6 +51,24 @@ public class InventoryService {
         }
     }
 
+    public Ingredients updateIngredient(Long id, Ingredients updatedIngredient) {
+        return ingredientRepository.findById(id).map(existingIngredient -> {
+            // Validate quantity_with_unit format
+            String[] quantityUnit = updatedIngredient.getQuantityWithUnit().split(" ");
+            if (quantityUnit.length != 2) {
+                throw new IllegalArgumentException("Invalid format for quantity_with_unit");
+            }
+    
+            // Update fields
+            existingIngredient.setItem(updatedIngredient.getItem());
+            existingIngredient.setQuantityWithUnit(updatedIngredient.getQuantityWithUnit());
+            existingIngredient.setExpiry(updatedIngredient.getExpiry());
+    
+            return ingredientRepository.save(existingIngredient);
+        }).orElseThrow(() -> new RuntimeException("Ingredient not found"));
+    }
+    
+
     public void deleteIngredient(Long id) {
         ingredientRepository.deleteById(id);
     }
