@@ -252,11 +252,12 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
 
   // Function to display the Edit dialog
   void showEditDialog(BuildContext context, Map<String, dynamic> item) {
-    String itemName = item['item'];
-    String quantity = item['quantityWithUnit'].split(' ')[0];
-    String unit = item['quantityWithUnit'].split(' ')[1].toLowerCase(); // Extract unit (normalize case)
-    String expiryDate = item['expiry']; // Extract expiry date
-    
+    // Handle null values for 'item', 'quantityWithUnit', and 'expiry'
+    String itemName = item['item'] ?? ""; // Fallback to an empty string if null
+    String quantity = item['quantityWithUnit']?.split(' ')[0] ?? "0"; // Default to "0" if null
+    String unit = item['quantityWithUnit']?.split(' ')[1]?.toLowerCase() ?? "other"; // Default to "other"
+    String expiryDate = item['expiry'] ?? ""; // Fallback to empty string if null
+
     // Define units as singular/plural friendly
     List<String> units = ['piece', 'gram', 'liter', 'cup', 'other'];
 
@@ -299,17 +300,26 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Unit'),
-                  value: unit, // Match normalized unit (singular form)
+                  value: units.contains(unit) ? unit : null, // Ensure the value is in the list
                   items: units
-                      .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                      .map((u) => DropdownMenuItem(
+                            value: u,
+                            child: Text(u),
+                          ))
                       .toList(),
-                  onChanged: (value) => unit = value!,
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        unit = value;
+                      });
+                    }
+                  },
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   decoration: const InputDecoration(labelText: 'Expiry Date'),
-                  controller: TextEditingController(text: item['expiry']),
-                  onChanged: (value) => item['expiry'] = value,
+                  controller: TextEditingController(text: expiryDate),
+                  onChanged: (value) => expiryDate = value,
                 ),
               ],
             ),
@@ -348,15 +358,23 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
 
     // Sort inventory by expiry date
     inventory.sort((a, b) {
-      final dateA = DateTime.tryParse(a['expiry']) ?? DateTime.now();
-      final dateB = DateTime.tryParse(b['expiry']) ?? DateTime.now();
-      return dateA.compareTo(dateB); // Ascending order
+      // Safely handle null or invalid expiry values
+      final dateA = a['expiry'] != null ? DateTime.tryParse(a['expiry']) : null;
+      final dateB = b['expiry'] != null ? DateTime.tryParse(b['expiry']) : null;
+
+      // Use a fallback if the date is null
+      final fallbackDateA = dateA ?? DateTime(2100, 1, 1); // Future date as fallback
+      final fallbackDateB = dateB ?? DateTime(2100, 1, 1);
+
+      return fallbackDateA.compareTo(fallbackDateB); // Ascending order
     });
+
 
     return Scaffold(
       backgroundColor: createMaterialColor(const Color(0xFF80A6A4)),
@@ -442,7 +460,9 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                 ),
                                 child: Center(
                                   child: Text(
-                                    item['item'][0].toUpperCase(), // Initial Character
+                                    (item['item'] != null && item['item'].isNotEmpty)
+                                        ? item['item'][0].toUpperCase() // Initial Character
+                                        : "?", // Fallback to "?" if item name is null or empty
                                     style: const TextStyle(
                                       fontSize: 28,
                                       fontWeight: FontWeight.bold,
