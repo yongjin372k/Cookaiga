@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/mykitchen_03.dart';
 import 'design.dart';
 import 'homepage.dart';
 import 'transition.dart';
@@ -47,7 +48,14 @@ class MyKitchen01Content extends StatelessWidget {
                 const SizedBox(height: 20),
                 canvaImage('scan_grocery.png', width: 150, height: 150),
                 const SizedBox(height: 1),
-                canvaImage('browse_inventory.png', width: 150, height: 150),
+                // Clickable browse_inventory.png
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context)
+                        .push(fadeTransition(MyKitchen03Content())); // Navigate to next page
+                  },
+                  child: canvaImage('browse_inventory.png', width: 150, height: 150),
+                ),
                 const SizedBox(height: 1),
               ],
             ),
