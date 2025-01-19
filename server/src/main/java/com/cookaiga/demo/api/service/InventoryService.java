@@ -16,13 +16,13 @@ public class InventoryService {
         this.ingredientRepository = ingredientRepository;
     }
 
-    public List<Ingredients> getAllIngredients() {
-        return ingredientRepository.findAll();
+    public List<Ingredients> getAllIngredients(Long userID) {
+        return ingredientRepository.findAllByUserID(userID);
     }
 
-    public Ingredients addOrUpdateIngredient(Ingredients newIngredient) {
-        // Check if an ingredient with the same name exists
-        Ingredients existingIngredient = ingredientRepository.findByItem(newIngredient.getItem());
+    public Ingredients addOrUpdateIngredient(Ingredients newIngredient, Long userID) {
+        // Check if an ingredient with the same name exists for the user
+        Ingredients existingIngredient = ingredientRepository.findByItemAndUserID(newIngredient.getItem(), userID);
 
         if (existingIngredient != null) {
             // Parse existing quantity and unit
@@ -46,30 +46,48 @@ public class InventoryService {
                 throw new IllegalArgumentException("Unit mismatch: cannot combine quantities with different units");
             }
         } else {
-            // If not found, add the new ingredient
+            // If not found, add the new ingredient and assign userID
+            newIngredient.setUserID(userID);
             return ingredientRepository.save(newIngredient);
         }
     }
 
-    public Ingredients updateIngredient(Long id, Ingredients updatedIngredient) {
+    public Ingredients updateIngredient(Long id, Ingredients updatedIngredient, Long userID) {
         return ingredientRepository.findById(id).map(existingIngredient -> {
-            // Validate quantity_with_unit format
-            String[] quantityUnit = updatedIngredient.getQuantityWithUnit().split(" ");
-            if (quantityUnit.length != 2) {
-                throw new IllegalArgumentException("Invalid format for quantity_with_unit");
+            // Ensure the ingredient belongs to the specified user
+            if (!existingIngredient.getUserID().equals(userID)) {
+                throw new RuntimeException("Ingredient does not belong to the specified user");
             }
     
-            // Update fields
-            existingIngredient.setItem(updatedIngredient.getItem());
-            existingIngredient.setQuantityWithUnit(updatedIngredient.getQuantityWithUnit());
-            existingIngredient.setExpiry(updatedIngredient.getExpiry());
+            // Replace fields ONLY if they are provided in the update request
+            if (updatedIngredient.getItem() != null) {
+                existingIngredient.setItem(updatedIngredient.getItem());
+            }
+            if (updatedIngredient.getQuantityWithUnit() != null) {
+                // Replace the quantity with the new value
+                existingIngredient.setQuantityWithUnit(updatedIngredient.getQuantityWithUnit());
+            }
+            if (updatedIngredient.getExpiry() != null) {
+                existingIngredient.setExpiry(updatedIngredient.getExpiry());
+            }
     
+            // Save and return the updated ingredient
             return ingredientRepository.save(existingIngredient);
-        }).orElseThrow(() -> new RuntimeException("Ingredient not found"));
+        }).orElseThrow(() -> new RuntimeException("Ingredient with ID " + id + " not found"));
     }
     
 
-    public void deleteIngredient(Long id) {
+    public void deleteIngredient(Long id, Long userID) {
+        Ingredients ingredient = ingredientRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Ingredient with ID " + id + " not found"));
+    
+        // Ensure the ingredient belongs to the user
+        if (!ingredient.getUserID().equals(userID)) {
+            throw new RuntimeException("Ingredient does not belong to the specified user");
+        }
+    
+        // Delete the ingredient
         ingredientRepository.deleteById(id);
     }
+    
 }

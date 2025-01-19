@@ -256,6 +256,9 @@ def get_kitchen_list():
 
             # Automatically generate recipes if valid ingredients exist
             if filtered_ingredients:
+
+                save_filtered_ingredients_to_db(filtered_ingredients, user_id)
+
                 # Call the generate_recipe function directly
                 recipes = generate_recipe_from_ingredients(filtered_ingredients)
                 return jsonify({
@@ -269,6 +272,38 @@ def get_kitchen_list():
     except Exception as e:
         print(f"Error retrieving kitchen list: {e}")
         return jsonify({"error": "Internal server error"}), 500
+    
+
+def save_filtered_ingredients_to_db(filtered_ingredients, user_id):
+    """Insert filtered ingredients into the database."""
+    try:
+        for ingredient_name in filtered_ingredients:
+            # Capitalize the first letter of the ingredient name
+            ingredient_name = ingredient_name.capitalize()
+            # Check if the ingredient already exists for the user
+            cursor.execute(
+                """
+                SELECT id FROM ingredients WHERE item = %s AND userID = %s
+                """,
+                (ingredient_name, user_id)
+            )
+            existing_ingredient = cursor.fetchone()
+
+            if not existing_ingredient:
+                # Insert the ingredient with NULL quantity and expiry
+                cursor.execute(
+                    """
+                    INSERT INTO ingredients (item, quantity_with_unit, expiry, userID) 
+                    VALUES (%s, NULL, NULL, %s)
+                    """,
+                    (ingredient_name, user_id)
+                )
+                conn.commit()
+                print(f"Ingredient '{ingredient_name}' saved to the database.")
+            else:
+                print(f"Ingredient '{ingredient_name}' already exists in the database.")
+    except Exception as e:
+        print(f"Error saving filtered ingredients to the database: {e}")
 
 
 # Helper function to generate recipes directly

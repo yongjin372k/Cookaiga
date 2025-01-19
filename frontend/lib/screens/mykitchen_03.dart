@@ -18,7 +18,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   // Dummy data for the inventory
   List<Map<String, dynamic>> inventory = []; // Inventory data from the backend
 
-  final String baseUrl = "$URL/api/ingredients"; // Replace with your backend URL
+  final String baseUrl = "$URL/api/ingredients?userID=1"; // Replace with your backend URL
 
   @override
   void initState() {
@@ -54,6 +54,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
       'item': itemName,
       'quantityWithUnit': '$quantity $unit',
       'expiry': expiryDate,
+      'userID': 1, // Static userId set to 1
     };
     try {
       final response = await http.post(
@@ -74,11 +75,13 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   // Update an existing inventory item
   Future<void> updateInventoryItem(int id, Map<String, dynamic> updatedItem) async {
     try {
-      final response = await http.put(
-        Uri.parse("$baseUrl/$id"),
+      // Call the backend API to update the ingredient
+      final response = await http.post(
+        Uri.parse("$URL/api/ingredients/update/$id?userID=1"), // Updated URL with POST
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode(updatedItem),
+        body: jsonEncode(updatedItem), // Send updated fields
       );
+
       if (response.statusCode == 200) {
         fetchInventory(); // Refresh the list after updating
       } else {
@@ -88,6 +91,9 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
       print("Error updating item: $error");
     }
   }
+
+
+
 
   // Delete an inventory item
   Future<void> deleteInventoryItem(int id) async {
