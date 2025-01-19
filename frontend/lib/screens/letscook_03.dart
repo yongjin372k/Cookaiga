@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/main.dart';
+import 'package:frontend/screens/checklist.dart';
 import 'design.dart';
 import 'letscook_01.dart';
 import 'transition.dart';
@@ -99,7 +100,7 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => OverviewRecipe(
+            builder: (context) => ChecklistPage(
               recipeName: recipeName,
               ingredients: ingredients,
               equipment: equipment,
