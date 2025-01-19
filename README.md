@@ -2,7 +2,7 @@
 
 Team HELYX, We are a dedicated team of undergraduate students majoring in Information Engineering and Media (IEM) at the School of Electrical and Electronic Engineering, Nanyang Technological University (NTU). Our team comprises Eliza, Ewan, and Yong Jin, each bringing unique perspectives and skills to the table. 
 
-![alt text](https://github.com/yongjin372k/Cookaiga/blob/main/cookaigalogo.jpg?raw=true)
+![alt text](https://github.com/yongjin372k/Cookaiga/blob/main/frontend/assets/logo/cookaiga_logo_four.png?raw=true)
 
 COOKAiGA is designed to create an adaptive and supportive cooking experience for individuals with ADHD, making meal preparation engaging, stress-free, and rewarding. The app leverages AI technology to simplify meal planning and streamline the cooking process while providing personalized guidance tailored to the unique needs of neurodivergent users. 
 
