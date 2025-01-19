@@ -1,6 +1,9 @@
 package com.cookaiga.demo.api.repository;
 
 import com.cookaiga.demo.models.Sticker;
+
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -41,6 +44,14 @@ public interface StickerRepository extends JpaRepository<Sticker, Integer> {
         @Param("filePath") String filePath
     );
 
+    // Get sticker by userID
+    @Query(value = """
+        SELECT s.* FROM STICKER s
+        INNER JOIN REDEMPTION r ON s.stickerID = r.stickerID
+        WHERE r.userID = :userID
+        """, nativeQuery = true)
+    List<Sticker> findStickersByUserID(@Param("userID") int userID);
+
     // Check if a sticker exists by name
     @Query(value = "SELECT COUNT(*) FROM STICKER WHERE stickerName = :stickerName", nativeQuery = true)
     int checkExistingSticker(@Param("stickerName") String stickerName);
@@ -52,4 +63,12 @@ public interface StickerRepository extends JpaRepository<Sticker, Integer> {
     // Get file path by sticker ID
     @Query(value = "SELECT file_path FROM STICKER WHERE stickerID = :stickerID", nativeQuery = true)
     String getFilePathByStickerID(@Param("stickerID") int stickerID);
+
+    @Query(value = """
+            SELECT * FROM STICKER 
+            WHERE stickerID NOT IN (
+                SELECT stickerID FROM REDEMPTION WHERE userID = :userID
+            )
+            """, nativeQuery = true)
+    List<Sticker> findUnownedStickersByUserId(@Param("userID") int userID);
 }

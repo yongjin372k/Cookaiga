@@ -30,6 +30,27 @@ public class StickerController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // Get all stickers redeemed by a specific user
+    @GetMapping("/user/{userID}")
+    public ResponseEntity<List<Sticker>> getStickersByUserID(@PathVariable int userID) {
+        List<Sticker> userStickers = stickerService.getStickersByUserID(userID);
+        if (userStickers.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(userStickers);
+    }
+
+    // Get a random sticker that the user doesn't already own and add it to their redemption
+    @PostMapping("/random")
+    public ResponseEntity<Sticker> getRandomStickerForUser(@RequestParam int userID) {
+        try {
+            Sticker randomSticker = stickerService.getRandomStickerForUser(userID);
+            return ResponseEntity.ok(randomSticker);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
     // Add a new sticker
     @PostMapping("/add")                                                        // Do not use database column names when testing in Postman. mb
     public ResponseEntity<Sticker> addSticker(@RequestBody Sticker sticker) {
