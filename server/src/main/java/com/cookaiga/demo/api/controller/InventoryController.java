@@ -21,23 +21,28 @@ public class InventoryController {
     }
 
     @GetMapping
-    public List<Ingredients> getAllIngredients() {
-        return ingredientService.getAllIngredients();
+    public List<Ingredients> getAllIngredients(@RequestParam Long userID) {
+        return ingredientService.getAllIngredients(userID);
     }
 
     @PostMapping
-    public Ingredients addOrUpdateIngredient(@RequestBody Ingredients ingredient) {
-        return ingredientService.addOrUpdateIngredient(ingredient);
+    public Ingredients addOrUpdateIngredient(@RequestBody Ingredients ingredient, @RequestParam Long userID) {
+        return ingredientService.addOrUpdateIngredient(ingredient, userID);
     }
 
-    @PutMapping("/{id}")
-    public Ingredients updateIngredient(@PathVariable Long id, @RequestBody Ingredients ingredient) {
-        return ingredientService.updateIngredient(id, ingredient);
+    @PostMapping("/update/{id}")
+    public Ingredients updateIngredient(
+        @PathVariable Long id,
+        @RequestBody Ingredients ingredient,
+        @RequestParam(value = "userID", defaultValue = "1") Long userID // Default userID to 1
+    ) {
+        return ingredientService.updateIngredient(id, ingredient, userID);
     }
+
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteIngredient(@PathVariable Long id) {
-        ingredientService.deleteIngredient(id);
+    public ResponseEntity<?> deleteIngredient(@PathVariable Long id, @RequestParam Long userID) {
+        ingredientService.deleteIngredient(id, userID);
         return ResponseEntity.noContent().build();
     }
 }

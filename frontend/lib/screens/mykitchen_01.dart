@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/camera_screen_inventory.dart';
 import 'package:frontend/screens/mykitchen_03.dart';
 import 'design.dart';
 import 'homepage.dart';
@@ -46,7 +47,13 @@ class MyKitchen01Content extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
-                canvaImage('scan_grocery.png', width: 150, height: 150),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context)
+                        .push(fadeTransition(CameraPageInventory())); // Navigate to next page
+                  },
+                  child: canvaImage('scan_grocery.png', width: 150, height: 150),
+                ),
                 const SizedBox(height: 1),
                 // Clickable browse_inventory.png
                 GestureDetector(

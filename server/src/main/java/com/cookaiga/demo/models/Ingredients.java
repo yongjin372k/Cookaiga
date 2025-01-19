@@ -29,4 +29,8 @@ public class Ingredients {
 
     @Column(name = "expiry") // Map to the 'expiry' column in the database
     private LocalDate expiry;
+
+    @Column(name = "userID") // Add this column to track the user
+    private Long userID;
 }
+
