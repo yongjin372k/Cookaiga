@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/main.dart';
+import 'package:frontend/screens/letscook_03.dart';
 import 'package:frontend/screens/mykitchen_01.dart';
 import 'design.dart';
 import 'letscook_01.dart';
@@ -92,9 +93,6 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
     }
   }
 
-
-
-
   // Delete an inventory item
   Future<void> deleteInventoryItem(int id) async {
     try {
@@ -108,6 +106,69 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
       print("Error deleting item: $error");
     }
   }
+
+  // Function to generate recipes based on the selected ingredient
+  Future<void> generateRecipes(BuildContext context, String ingredient) async {
+    print("Generate Recipes for: $ingredient");
+
+    try {
+      final response = await http.post(
+        Uri.parse('$URL/api/recipes/generate-from-database'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"ingredient": ingredient}),
+      );
+
+      print("Ingredient Sent: $ingredient");
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        print("Response Data: ${response.body}");
+
+        // Handle response as a list
+        if (responseData is List) {
+          final List<String> recipes = responseData.cast<String>();
+          print("Generated Recipes: $recipes");
+
+          // Use the root context to ensure navigation works
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context); // Close the dialog first
+          }
+
+          if (context.mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LetsCook03Content(recipes: recipes),
+              ),
+            );
+          }
+        } else {
+          print("Unexpected response format: ${responseData.runtimeType}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Unexpected response format for recipes")),
+          );
+        }
+      } else {
+        print("Failed to generate recipes: ${response.body}");
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error generating recipes: ${response.reasonPhrase}")),
+          );
+        }
+      }
+    } catch (e) {
+      print("Error generating recipes: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error generating recipes: $e")),
+        );
+      }
+    }
+  }
+
+
+
+
 
   /// Helper function to format quantity with singular/plural unit
   String formatQuantityWithUnit(String quantity, String unit) {
@@ -243,8 +304,18 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
             ],
           ),
           actions: [
+            // Generate Recipes Button
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                generateRecipes(context, item['item']); // Generate recipes
+              },
+              child: const Text(
+                'Generate Recipes',
+                style: TextStyle(fontFamily: 'Chewy'),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Close the dialog
               child: const Text(
                 'Close',
                 style: TextStyle(fontFamily: 'Chewy'),
@@ -255,6 +326,8 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
       },
     );
   }
+
+
 
   // Function to display the Edit dialog
   void showEditDialog(BuildContext context, Map<String, dynamic> item) {
