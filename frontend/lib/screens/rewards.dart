@@ -22,7 +22,7 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
   ]; // Page colors for empty slots
 
   int _currentPage = 1; // Current page number
-  List<String?> _userStickers = []; // Sticker image URLs
+  List<Map<String, dynamic>> _userStickers = []; // Sticker details
   bool _isLoading = true; // Loading state
 
   @override
@@ -33,7 +33,7 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
 
   // Fetch all sticker IDs redeemed by the user, then fetch their details
   Future<void> _fetchUserStickers() async {
-    const int userID = 1;
+    const int userID = 1; // Replace with the actual user ID
     final String apiUrl = '$URL/api/redemptions/user/$userID';
 
     try {
@@ -41,21 +41,35 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
       final response = await http.get(Uri.parse(apiUrl));
 
       if (response.statusCode == 200) {
-        print("Redemptions response: ${response.body}");
-
-        final List<dynamic> redemptionData = jsonDecode(response.body);
-        final List<int> stickerIDs = redemptionData
-            .map<int>((redemption) => redemption['stickerID'] as int)
-            .toList();
-
-        print("All available StickerIDs for UserID $userID: StickerIDs $stickerIDs");
+        // Decode response body as UTF-8
+        final List<dynamic> redemptionData = jsonDecode(utf8.decode(response.bodyBytes));
+        print("Redemptions response: $redemptionData");
 
         final stickers = await Future.wait(
-          stickerIDs.map((stickerID) => _fetchStickerDetails(stickerID)),
+          redemptionData.map((redemption) async {
+            final stickerID = redemption['stickerID'];
+            // Parse the `redeemedAt` field and extract only the date
+            final redemptionDate = redemption['redeemedAt'] != null
+                ? DateTime.parse(redemption['redeemedAt'])
+                    .toLocal()
+                    .toIso8601String()
+                    .split('T')[0]
+                : "Unknown Date";
+
+            final stickerDetails = await _fetchStickerDetails(stickerID);
+
+            if (stickerDetails != null) {
+              return {
+                ...stickerDetails,
+                'redeemedAt': redemptionDate,
+              };
+            }
+            return null;
+          }),
         );
 
         setState(() {
-          _userStickers = stickers.whereType<String?>().toList();
+          _userStickers = stickers.whereType<Map<String, dynamic>>().toList();
           _isLoading = false;
         });
       } else {
@@ -67,20 +81,20 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
   }
 
   // Fetch individual sticker details using its ID
-  Future<String?> _fetchStickerDetails(int stickerID) async {
+  Future<Map<String, dynamic>?> _fetchStickerDetails(int stickerID) async {
     final String stickerApiUrl = '$URL/api/sticker/$stickerID';
 
     try {
       print("Fetching sticker details for Sticker ID: $stickerID");
-      final stickerResponse = await http.get(Uri.parse(stickerApiUrl));
-      print("Response for sticker $stickerID: ${stickerResponse.body}");
+      final response = await http.get(Uri.parse(stickerApiUrl));
 
-      if (stickerResponse.statusCode == 200) {
-        final data = jsonDecode(stickerResponse.body);
-        print("File path for sticker $stickerID: ${data['filePath']}");
-        return data['filePath']; // Assuming backend returns `filePath` for sticker image
+      if (response.statusCode == 200) {
+        // Decode response body as UTF-8
+        final Map<String, dynamic> stickerDetails = jsonDecode(utf8.decode(response.bodyBytes));
+        print("Response for sticker $stickerID: $stickerDetails");
+        return stickerDetails; // Return the full sticker details
       } else {
-        print("Failed to fetch sticker $stickerID. Status Code: ${stickerResponse.statusCode}");
+        print("Failed to fetch sticker $stickerID. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching sticker details for ID $stickerID: $e");
@@ -90,15 +104,10 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
   }
 
   // Helper method to build an image widget from the backend
-  Widget _buildBackendImage(String fileName) {
-    // Remove "assets/stickers/" from the fileName if it exists
-    final String sanitizedFileName = fileName.replaceFirst("assets/stickers/", "");
+  Widget _buildBackendImage(String filePath) {
+    // Remove "assets/stickers/" from the filePath if it exists
+    final String sanitizedFileName = filePath.replaceFirst("assets/stickers/", "");
     final String backendUrl = "$URL/api/stickers/$sanitizedFileName";
-
-    // Debugging logs
-    print("Original file path: $fileName");
-    print("Sanitized file name (without prefix): $sanitizedFileName");
-    print("Constructed backend URL: $backendUrl");
 
     return Image.network(
       backendUrl,
@@ -107,22 +116,84 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
       fit: BoxFit.cover,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) {
-          print("Successfully loaded sticker: $sanitizedFileName");
           return child;
         }
-        print("Loading progress for sticker: $sanitizedFileName - "
-            "${loadingProgress.expectedTotalBytes != null ? 
-                (loadingProgress.cumulativeBytesLoaded / 
-                loadingProgress.expectedTotalBytes! * 100).toStringAsFixed(0) : 'Unknown'}%");
         return const Center(child: CircularProgressIndicator());
       },
       errorBuilder: (context, error, stackTrace) {
-        print("Failed to load sticker: $sanitizedFileName. Error: $error");
         return Container(
           color: Colors.grey,
           width: 180,
           height: 200,
           child: const Icon(Icons.error, color: Colors.red),
+        );
+      },
+    );
+  }
+
+  // Show dialog with sticker details
+  void _showStickerDetailsDialog(Map<String, dynamic> stickerData) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF5B98A9),
+          title: Text(
+            stickerData['stickerName'],
+            style: const TextStyle(
+              color: Colors.white,
+              fontFamily: 'Chewy',
+              fontSize: 26,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildBackendImage(stickerData['filePath']),
+              const SizedBox(height: 10),
+              Text(
+                stickerData['stickerDesc'] ?? "No description available.",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Chewy',
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "Redeemed on: ${stickerData['redeemedAt']}",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Chewy',
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            Center(
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF336B89),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  "Close",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontFamily: 'Chewy',
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -196,32 +267,28 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
                             final int stickerIndex =
                                 ((_currentPage - 1) * _totalStickerSlotsPerPage) + index;
 
-                            // Check if the sticker exists at the index
-                            final stickerImage = stickerIndex < _userStickers.length
-                                ? _userStickers[stickerIndex]
-                                : null;
+                            if (stickerIndex >= _userStickers.length) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: _pageColors[_currentPage - 1],
+                                  border: Border.all(color: Colors.black),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              );
+                            }
 
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: _pageColors[_currentPage - 1], // Background color
-                                border: Border.all(color: Colors.black),
-                                borderRadius: BorderRadius.circular(8),
+                            final stickerData = _userStickers[stickerIndex];
+
+                            return GestureDetector(
+                              onTap: () => _showStickerDetailsDialog(stickerData),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: _pageColors[_currentPage - 1],
+                                  border: Border.all(color: Colors.black),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: _buildBackendImage(stickerData['filePath']),
                               ),
-                              child: stickerImage != null
-                                  ? Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: _pageColors[_currentPage - 1],
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                        ),
-                                        Center(child: _buildBackendImage(stickerImage)),
-                                      ],
-                                    )
-                                  : null,
                             );
                           },
                         ),

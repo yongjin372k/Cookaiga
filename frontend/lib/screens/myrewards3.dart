@@ -15,6 +15,7 @@ class MyRewards3Page extends StatefulWidget {
 
 class _MyRewards3PageState extends State<MyRewards3Page> {
   String? _stickerImageUrl;
+  String? _stickerName;
 
   @override
   void initState() {
@@ -22,7 +23,7 @@ class _MyRewards3PageState extends State<MyRewards3Page> {
     _fetchRandomSticker(); // Fetch the random sticker when the page loads
   }
 
-  // Function to fetch a random sticker image from the backend
+  // Function to fetch a random sticker image and sticker name from the backend
   Future<void> _fetchRandomSticker() async {
     const int userID = 1; // Replace with the actual user ID if dynamic
     final String apiUrl = '$URL/api/sticker/random?userID=$userID';
@@ -49,9 +50,10 @@ class _MyRewards3PageState extends State<MyRewards3Page> {
           print("Sticker file path is missing in response.");
           _showAllStickersClaimedDialog();
         } else {
-          print("Fetched sticker details: ${data['filePath']}");
+          print("Fetched sticker details: ${data['filePath']}, ${data['stickerName']}");
           setState(() {
             _stickerImageUrl = data['filePath']; // Backend returns a field `filePath`
+            _stickerName = data['stickerName']; // Backend returns a field `stickerName`
           });
         }
       } else if (response.statusCode == 400) {
@@ -198,7 +200,21 @@ class _MyRewards3PageState extends State<MyRewards3Page> {
               // Sticker Image or Loading Indicator
               _stickerImageUrl == null
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : _buildBackendImage(_stickerImageUrl!),
+                  : Column(
+                      children: [
+                        _buildBackendImage(_stickerImageUrl!),
+                        const SizedBox(height: 10),
+                        Text(
+                          _stickerName ?? "Unknown Sticker",
+                          style: const TextStyle(
+                            fontSize: 24,
+                            color: Colors.white,
+                            fontFamily: 'Chewy',
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
               // Back to Collection Button
               ElevatedButton(
                 onPressed: () {
