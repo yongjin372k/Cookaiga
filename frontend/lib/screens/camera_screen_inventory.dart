@@ -100,14 +100,14 @@ class _CameraPageStateInventory extends State<CameraPageInventory> {
 
         // Fetch generated recipes directly from the backend
         final recipeResponse = await http.get(
-          Uri.parse('$URL2/api/kitchen-list?userID=1'),
+          Uri.parse('$URL2/api/inventory-list?userID=1'),
           headers: {"Content-Type": "application/json"},
         );
 
         if (recipeResponse.statusCode == 200) {
           // Parse the response and extract recipes
           final responseData = jsonDecode(recipeResponse.body);
-          final List<String> recipes = (responseData['recipes'] as List<dynamic>).cast<String>();
+          // final List<String> recipes = (responseData['recipes'] as List<dynamic>).cast<String>();
 
           // Navigate to the LetsCook03Content page with only the recipes
           Navigator.push(

@@ -6,6 +6,8 @@ from openai import AzureOpenAI
 from flask_cors import CORS
 import json
 import re
+from datetime import datetime, timedelta
+
 
 app = Flask(__name__)
 CORS(app)
@@ -257,13 +259,69 @@ def get_kitchen_list():
             # Automatically generate recipes if valid ingredients exist
             if filtered_ingredients:
 
-                save_filtered_ingredients_to_db(filtered_ingredients, user_id)
+                # save_filtered_ingredients_to_db(filtered_ingredients, user_id)
 
                 # Call the generate_recipe function directly
                 recipes = generate_recipe_from_ingredients(filtered_ingredients)
                 return jsonify({
                     # "kitchen_list": filtered_ingredients,
                     "recipes": recipes.get("recipe", [])
+                }), 200
+
+            return jsonify({"kitchen_list": filtered_ingredients}), 200
+        else:
+            return jsonify({"error": "No kitchen list found for the given userID"}), 404
+    except Exception as e:
+        print(f"Error retrieving kitchen list: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+    
+
+
+# API endpoint to fetch and filter kitchen list based on user ID
+@app.route('/api/inventory-list', methods=['GET'])
+def get_inventory_list():
+    user_id = request.args.get('userID')
+    print(f"Received user_id: {user_id}")
+    if not user_id:
+        return jsonify({"error": "userID is required"}), 400
+
+    try:
+        cursor.execute(
+            """
+            SELECT kitchenList 
+            FROM KITCHEN 
+            WHERE userID = %s 
+            ORDER BY added_at DESC 
+            LIMIT 1
+            """, 
+            (user_id,)
+        )
+        result = cursor.fetchone()
+        print(f"SQL Result: {result}")
+        if result:
+            kitchen_list = result[0].split(", ")
+            print(f"Original kitchen list: {kitchen_list}")
+
+            # Filter valid ingredients
+            filtered_ingredients = []
+            for item in kitchen_list:
+                extracted_ingredients = extract_ingredient(item)
+                filtered_ingredients.extend(extracted_ingredients)
+
+            # Remove duplicates and maintain order
+            filtered_ingredients = list(dict.fromkeys(filtered_ingredients))
+            print(f"Filtered ingredients: {filtered_ingredients}")
+
+            # Automatically generate recipes if valid ingredients exist
+            if filtered_ingredients:
+
+                save_filtered_ingredients_to_db(filtered_ingredients, user_id)
+
+                # Call the generate_recipe function directly
+                # recipes = generate_recipe_from_ingredients(filtered_ingredients)
+                return jsonify({
+                    # "kitchen_list": filtered_ingredients,
+                    # "recipes": recipes.get("recipe", [])
                 }), 200
 
             return jsonify({"kitchen_list": filtered_ingredients}), 200
@@ -290,13 +348,16 @@ def save_filtered_ingredients_to_db(filtered_ingredients, user_id):
             existing_ingredient = cursor.fetchone()
 
             if not existing_ingredient:
+                # Calculate expiry date as 30 days from today
+                expiry_date = (datetime.now() + timedelta(days=30)).date()  # Add 30 days
+                
                 # Insert the ingredient with NULL quantity and expiry
                 cursor.execute(
                     """
                     INSERT INTO ingredients (item, quantity_with_unit, expiry, userID) 
-                    VALUES (%s, NULL, NULL, %s)
+                    VALUES (%s, '', %s, %s)
                     """,
-                    (ingredient_name, user_id)
+                    (ingredient_name, expiry_date, user_id)
                 )
                 conn.commit()
                 print(f"Ingredient '{ingredient_name}' saved to the database.")
