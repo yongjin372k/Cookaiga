@@ -34,11 +34,13 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
-          inventory = data.map((item) => {
-            'id': item['id'], // Include the ID for future edits/deletes
-            'item': item['item'],
-            'quantityWithUnit': item['quantityWithUnit'],
-            'expiry': item['expiry'],
+          inventory = data.map((item) {
+            return {
+              'id': item['id'],
+              'item': item['item'],
+              'quantityWithUnit': item['quantityWithUnit'] ?? '', // Default to empty
+              'expiry': item['expiry'] ?? '', // Default to empty
+            };
           }).toList();
         });
       } else {
@@ -328,20 +330,21 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   }
 
 
-
-  // Function to display the Edit dialog
   void showEditDialog(BuildContext context, Map<String, dynamic> item) {
-    // Handle null values for 'item', 'quantityWithUnit', and 'expiry'
+  // Handle null values for 'item', 'quantityWithUnit', and 'expiry'
     String itemName = item['item'] ?? ""; // Fallback to an empty string if null
-    String quantity = item['quantityWithUnit']?.split(' ')[0] ?? "0"; // Default to "0" if null
-    String unit = item['quantityWithUnit']?.split(' ')[1]?.toLowerCase() ?? "other"; // Default to "other"
-    String expiryDate = item['expiry'] ?? ""; // Fallback to empty string if null
+    List<String> quantityUnitParts = (item['quantityWithUnit'] ?? "").split(' '); // Split safely
+    String quantity = quantityUnitParts.isNotEmpty ? quantityUnitParts[0] : "0"; // Default to "0" if empty
+    String unit = quantityUnitParts.length > 1 ? quantityUnitParts[1].toLowerCase() : "other"; // Default to "other"
+    String expiryDate = item['expiry'] ?? ""; // Fallback to an empty string if null
 
     // Define units as singular/plural friendly
     List<String> units = ['piece', 'gram', 'liter', 'cup', 'other'];
 
     // Normalize the unit to singular (e.g., "grams" -> "gram")
-    if (unit.endsWith('s')) unit = unit.substring(0, unit.length - 1);
+    if (unit.endsWith('s') && unit != 'pieces') {
+      unit = unit.substring(0, unit.length - 1);
+    }
 
     showDialog(
       context: context,
@@ -435,7 +438,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
         );
       },
     );
-  }
+}
 
 
   @override
@@ -511,6 +514,10 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                     itemCount: inventory.length,
                     itemBuilder: (context, index) {
                       final item = inventory[index];
+
+                      // Check if the item requires editing (e.g., missing quantity or expiry)
+                      final requiresEditing = item['quantityWithUnit'].isEmpty || item['expiry'].isEmpty;
+
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 15.0),
                         child: Container(
@@ -560,15 +567,28 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                     mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
                                     crossAxisAlignment: CrossAxisAlignment.start, // Align to the left
                                     children: [
-                                      // Item Name
-                                      Text(
-                                        item['item'],
-                                        style: const TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                          fontFamily: 'Chewy',
-                                        ),
+                                      // Item Name with Alert Icon if Editing is Required
+                                      Row(
+                                        children: [
+                                          Text(
+                                            item['item'],
+                                            style: const TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black,
+                                              fontFamily: 'Chewy',
+                                            ),
+                                          ),
+                                          if (requiresEditing)
+                                            const Padding(
+                                              padding: EdgeInsets.only(left: 8.0),
+                                              child: Icon(
+                                                Icons.warning,
+                                                color: Colors.red,
+                                                size: 18,
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                       const SizedBox(height: 5),
 
@@ -578,7 +598,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                           const Icon(Icons.shopping_cart, size: 16, color: Colors.black),
                                           const SizedBox(width: 5),
                                           Text(
-                                            'Qty: ${item['quantityWithUnit']}',
+                                            'Qty: ${item['quantityWithUnit'].isEmpty ? 'N/A' : item['quantityWithUnit']}',
                                             style: const TextStyle(
                                               fontSize: 16,
                                               color: Colors.black,
@@ -594,7 +614,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                           const Icon(Icons.timer, size: 16, color: Colors.black),
                                           const SizedBox(width: 5),
                                           Text(
-                                            'Expiry: ${item['expiry']}',
+                                            'Expiry: ${item['expiry'].isEmpty ? 'N/A' : item['expiry']}',
                                             style: const TextStyle(
                                               fontSize: 16,
                                               color: Colors.black,
