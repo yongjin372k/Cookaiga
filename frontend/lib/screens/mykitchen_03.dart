@@ -509,199 +509,220 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                 const SizedBox(height: 20),
 
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                    itemCount: inventory.length,
-                    itemBuilder: (context, index) {
-                      final item = inventory[index];
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                  itemCount: inventory.length,
+                  itemBuilder: (context, index) {
+                    final item = inventory[index];
 
-                      // Check if the item requires editing (e.g., missing quantity or expiry)
-                      final requiresEditing = item['quantityWithUnit'].isEmpty || item['expiry'].isEmpty;
+                    // Parse the expiry date and get today's date
+                    final today = DateTime.now();
+                    final expiryDate = item['expiry'].isNotEmpty
+                        ? DateTime.tryParse(item['expiry'])
+                        : null;
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 15.0),
-                        child: Container(
-                          height: 100, // Set the height of the list item
-                          decoration: BoxDecoration(
-                            color: createMaterialColor(const Color(0xFFF1BFA1)),
-                            borderRadius: BorderRadius.circular(12.0),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
+                    // Check if the item requires editing (e.g., missing quantity or expiry)
+                    final requiresEditing = item['quantityWithUnit'].isEmpty || item['expiry'].isEmpty;
+
+                    // Check if the item is expiring today
+                    final isExpiringToday = expiryDate != null &&
+                        expiryDate.year == today.year &&
+                        expiryDate.month == today.month &&
+                        expiryDate.day == today.day;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 15.0),
+                      child: Container(
+                        height: 100, // Set the height of the list item
+                        decoration: BoxDecoration(
+                          color: createMaterialColor(const Color(0xFFF1BFA1)),
+                          borderRadius: BorderRadius.circular(12.0),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            // Circular Container with Initial Character
+                            Container(
+                              width: 70,
+                              height: 70,
+                              margin: const EdgeInsets.only(left: 15),
+                              decoration: BoxDecoration(
+                                color: createMaterialColor(const Color(0xFFE0E0E0)),
+                                shape: BoxShape.circle,
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              // Circular Container with Initial Character
-                              Container(
-                                width: 70,
-                                height: 70,
-                                margin: const EdgeInsets.only(left: 15),
-                                decoration: BoxDecoration(
-                                  color: createMaterialColor(const Color(0xFFE0E0E0)),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    (item['item'] != null && item['item'].isNotEmpty)
-                                        ? item['item'][0].toUpperCase() // Initial Character
-                                        : "?", // Fallback to "?" if item name is null or empty
-                                    style: const TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                      fontFamily: 'Chewy',
-                                    ),
+                              child: Center(
+                                child: Text(
+                                  (item['item'] != null && item['item'].isNotEmpty)
+                                      ? item['item'][0].toUpperCase() // Initial Character
+                                      : "?", // Fallback to "?" if item name is null or empty
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                    fontFamily: 'Chewy',
                                   ),
                                 ),
                               ),
+                            ),
 
-                              // Item Details Section
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
-                                    crossAxisAlignment: CrossAxisAlignment.start, // Align to the left
+                            // Item Details Section
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center, // Center the content vertically
+                                  crossAxisAlignment: CrossAxisAlignment.start, // Align to the left
+                                  children: [
+                                    // Item Name with Alert Icon if Editing or Expiry Warning
+                                    Row(
+                                      children: [
+                                        Text(
+                                          item['item'],
+                                          style: const TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                            fontFamily: 'Chewy',
+                                          ),
+                                        ),
+                                        if (requiresEditing) // For missing fields
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 8.0),
+                                            child: Icon(
+                                              Icons.report_problem, // Icon for missing fields
+                                              color: Colors.red,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        if (isExpiringToday) // For expiry today
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 8.0),
+                                            child: Icon(
+                                              Icons.hourglass_bottom, // Icon for expiry today
+                                              color: Colors.red,
+                                              size: 18,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 5),
+
+                                    // Quantity
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.shopping_cart, size: 16, color: Colors.black),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          'Qty: ${item['quantityWithUnit'].isEmpty ? 'N/A' : item['quantityWithUnit']}',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black,
+                                            fontFamily: 'Chewy',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    // Expiry
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.timer, size: 16, color: Colors.black),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          'Expiry: ${item['expiry'].isEmpty ? 'N/A' : item['expiry']}',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: isExpiringToday ? Colors.red : Colors.black,
+                                            fontFamily: 'Chewy',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // Popup Menu
+                            PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == 'view') {
+                                  print('View action selected for ${item['item']}');
+                                  showViewDialog(context, item);
+                                } else if (value == 'edit') {
+                                  print('Edit action selected for ${item['item']}');
+                                  showEditDialog(context, item);
+                                }
+                              },
+                              icon: const Icon(
+                                Icons.more_vert, // Three-dot icon
+                                color: Colors.black, // Icon color
+                              ),
+                              color: createMaterialColor(const Color(0xFFF9E0D2)), // Popup background color
+                              elevation: 6, // Add shadow for better visibility
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15.0), // Rounded corners
+                              ),
+                              itemBuilder: (BuildContext context) => [
+                                PopupMenuItem(
+                                  value: 'view',
+                                  child: Row(
                                     children: [
-                                      // Item Name with Alert Icon if Editing is Required
-                                      Row(
-                                        children: [
-                                          Text(
-                                            item['item'],
-                                            style: const TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.black,
-                                              fontFamily: 'Chewy',
-                                            ),
-                                          ),
-                                          if (requiresEditing)
-                                            const Padding(
-                                              padding: EdgeInsets.only(left: 8.0),
-                                              child: Icon(
-                                                Icons.warning,
-                                                color: Colors.red,
-                                                size: 18,
-                                              ),
-                                            ),
-                                        ],
+                                      const Icon(
+                                        Icons.visibility,
+                                        color: Color(0xFF80A6A4), // Custom icon color
+                                        size: 20,
                                       ),
-                                      const SizedBox(height: 5),
-
-                                      // Quantity
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.shopping_cart, size: 16, color: Colors.black),
-                                          const SizedBox(width: 5),
-                                          Text(
-                                            'Qty: ${item['quantityWithUnit'].isEmpty ? 'N/A' : item['quantityWithUnit']}',
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.black,
-                                              fontFamily: 'Chewy',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-
-                                      // Expiry
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.timer, size: 16, color: Colors.black),
-                                          const SizedBox(width: 5),
-                                          Text(
-                                            'Expiry: ${item['expiry'].isEmpty ? 'N/A' : item['expiry']}',
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.black,
-                                              fontFamily: 'Chewy',
-                                            ),
-                                          ),
-                                        ],
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'View',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                          fontFamily: 'Chewy', // Match the app's font
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
-
-                              // Popup Menu
-                              PopupMenuButton<String>(
-                                onSelected: (value) {
-                                  if (value == 'view') {
-                                    print('View action selected for ${item['item']}');
-                                    showViewDialog(context, item);
-                                  } else if (value == 'edit') {
-                                    print('Edit action selected for ${item['item']}');
-                                    showEditDialog(context, item);
-                                  }
-                                },
-                                icon: const Icon(
-                                  Icons.more_vert, // Three-dot icon
-                                  color: Colors.black, // Icon color
-                                ),
-                                color: createMaterialColor(const Color(0xFFF9E0D2)), // Popup background color
-                                elevation: 6, // Add shadow for better visibility
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15.0), // Rounded corners
-                                ),
-                                itemBuilder: (BuildContext context) => [
-                                  PopupMenuItem(
-                                    value: 'view',
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.visibility,
-                                          color: Color(0xFF80A6A4), // Custom icon color
-                                          size: 20,
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.edit,
+                                        color: Color(0xFF80A6A4), // Custom icon color
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Edit',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                          fontFamily: 'Chewy', // Match the app's font
                                         ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          'View',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black,
-                                            fontFamily: 'Chewy', // Match the app's font
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                  PopupMenuItem(
-                                    value: 'edit',
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.edit,
-                                          color: Color(0xFF80A6A4), // Custom icon color
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          'Edit',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black,
-                                            fontFamily: 'Chewy', // Match the app's font
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
+              ),
               // Bottom Spacer to Prevent List from Touching Phone's Edge
               const SizedBox(height: 20.0), // Adjust the height to your liking
               ],
