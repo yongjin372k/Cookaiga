@@ -33,6 +33,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
       final response = await http.get(Uri.parse(baseUrl));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
+        
         setState(() {
           inventory = data.map((item) {
             return {
@@ -43,12 +44,70 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
             };
           }).toList();
         });
+
+        // 🔥 Step 1: Find ingredients that need editing
+        List<Map<String, dynamic>> ingredientsToEdit = inventory.where((item) {
+          return item['quantityWithUnit'].isEmpty || item['expiry'].isEmpty;
+        }).toList();
+
+        // 🔥 Step 2: Open Edit Dialog for each ingredient with missing fields
+        if (ingredientsToEdit.isNotEmpty) {
+          Future.delayed(Duration(milliseconds: 500), () {
+            _openEditDialogs(ingredientsToEdit);
+          });
+        }
       } else {
         print("Failed to fetch inventory: ${response.statusCode}");
       }
     } catch (error) {
       print("Error fetching inventory: $error");
     }
+  }
+
+  void _openEditDialogs(List<Map<String, dynamic>> ingredientsToEdit) {
+    if (ingredientsToEdit.isEmpty) return;
+
+    print("Detected ${ingredientsToEdit.length} ingredients that require editing:");
+    for (var ingredient in ingredientsToEdit) {
+      print("Needs edit: ${ingredient['item']} (Quantity: '${ingredient['quantityWithUnit']}', Expiry: '${ingredient['expiry']}')");
+    }
+
+    int currentIndex = 0;
+    Set<int> editedIndexes = {}; // ✅ Ensure each ingredient is edited only once
+
+    void showNextDialog() {
+      if (currentIndex >= ingredientsToEdit.length) {
+        print("All required ingredient edits completed! Stopping here.");
+        return;
+      }
+
+      // ✅ Prevent reopening the same dialog
+      if (editedIndexes.contains(currentIndex)) {
+        print("Skipping duplicate dialog for: ${ingredientsToEdit[currentIndex]['item']}");
+        currentIndex++; // Move to next
+        showNextDialog(); // Proceed to next dialog
+        return;
+      }
+
+      print("Opening edit dialog for: ${ingredientsToEdit[currentIndex]['item']} (${currentIndex + 1}/${ingredientsToEdit.length})");
+      editedIndexes.add(currentIndex); // ✅ Mark this item as edited
+
+      showEditDialog(context, ingredientsToEdit[currentIndex], onDialogClose: () {
+        print("Closing dialog for: ${ingredientsToEdit[currentIndex]['item']}");
+        currentIndex++; // Move to next item
+
+        // ✅ Prevent reopening dialogs unnecessarily
+        if (currentIndex < ingredientsToEdit.length) {
+          Future.delayed(Duration(milliseconds: 300), () {
+            showNextDialog();
+          });
+        } else {
+          print("Final dialog closed. No more ingredients to edit.");
+        }
+      });
+    }
+
+    showNextDialog(); // ✅ Start processing dialogs
   }
 
   // Add a new inventory item
@@ -330,24 +389,22 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   }
 
 
-  void showEditDialog(BuildContext context, Map<String, dynamic> item) {
-  // Handle null values for 'item', 'quantityWithUnit', and 'expiry'
-    String itemName = item['item'] ?? ""; // Fallback to an empty string if null
-    List<String> quantityUnitParts = (item['quantityWithUnit'] ?? "").split(' '); // Split safely
-    String quantity = quantityUnitParts.isNotEmpty ? quantityUnitParts[0] : "0"; // Default to "0" if empty
-    String unit = quantityUnitParts.length > 1 ? quantityUnitParts[1].toLowerCase() : "other"; // Default to "other"
-    String expiryDate = item['expiry'] ?? ""; // Fallback to an empty string if null
+  void showEditDialog(BuildContext context, Map<String, dynamic> item, {VoidCallback? onDialogClose}) {
+    String itemName = item['item'] ?? "";
+    List<String> quantityUnitParts = (item['quantityWithUnit'] ?? "").split(' ');
+    String quantity = quantityUnitParts.isNotEmpty ? quantityUnitParts[0] : "0";
+    String unit = quantityUnitParts.length > 1 ? quantityUnitParts[1].toLowerCase() : "other";
+    String expiryDate = item['expiry'] ?? "";
 
-    // Define units as singular/plural friendly
     List<String> units = ['piece', 'gram', 'liter', 'cup', 'other'];
 
-    // Normalize the unit to singular (e.g., "grams" -> "gram")
     if (unit.endsWith('s') && unit != 'pieces') {
       unit = unit.substring(0, unit.length - 1);
     }
 
     showDialog(
       context: context,
+      barrierDismissible: false, // Prevent accidental closure
       builder: (context) {
         return AlertDialog(
           backgroundColor: createMaterialColor(const Color(0xFFF9E0D2)),
@@ -382,12 +439,9 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Unit'),
-                  value: units.contains(unit) ? unit : null, // Ensure the value is in the list
+                  value: units.contains(unit) ? unit : null,
                   items: units
-                      .map((u) => DropdownMenuItem(
-                            value: u,
-                            child: Text(u),
-                          ))
+                      .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                       .toList(),
                   onChanged: (value) {
                     if (value != null) {
@@ -408,7 +462,12 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pop(context);
+                if (onDialogClose != null) {
+                  onDialogClose();
+                }
+              },
               child: const Text(
                 'Cancel',
                 style: TextStyle(fontFamily: 'Chewy'),
@@ -416,18 +475,18 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
             ),
             TextButton(
               onPressed: () {
-                // Prepare the updated item details
                 final updatedItem = {
                   'item': itemName,
                   'quantityWithUnit': '$quantity ${unit.endsWith('s') ? unit : '${unit}s'}',
                   'expiry': expiryDate,
                 };
 
-                // Call the update method
-                updateInventoryItem(item['id'], updatedItem);
-
-                // Close the dialog
-                Navigator.pop(context);
+                updateInventoryItem(item['id'], updatedItem).then((_) {
+                  if (onDialogClose != null) {
+                    onDialogClose();
+                  }
+                  Navigator.pop(context);
+                });
               },
               child: const Text(
                 'Save',
@@ -438,7 +497,9 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
         );
       },
     );
-}
+  }
+
+
 
 
   @override
