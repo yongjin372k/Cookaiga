@@ -63,7 +63,7 @@ public class UserController {
         }
     }
 
-    @PostMapping("/user/login")
+    @PostMapping("/login")
     public ResponseEntity<?> authenticate(@RequestBody LoginRequest loginRequest) {
         // Authenticate the user
         boolean authenticated =
