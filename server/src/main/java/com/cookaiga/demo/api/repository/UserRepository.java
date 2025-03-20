@@ -15,14 +15,26 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Transactional
     @Modifying
     @Query(
-        value = "INSERT INTO USER (username, fullname, points, created_at) VALUES (:username, :fullname, :points, :created_at)",
+        value = "INSERT INTO USER (username, fullname, password, points, created_at) VALUES (:username, :fullname, :password, :points, :created_at)",
         nativeQuery = true)
     int registerUser(
         @Param("username") String username,
         @Param("fullname") String fullname,
+        @Param("password") String password,
         @Param("points") int points,
         @Param("created_at") String createdAt
     );
+
+
+    // Check if a username exists
+    @Query(value = "SELECT COUNT(*) FROM USER WHERE username = :username", nativeQuery = true)
+    int checkExistingUsername(@Param("username") String username);
+
+    // Check authentication for user account
+    @Query(
+        value = "SELECT COUNT(*) FROM user WHERE username = :username AND password = :password",
+        nativeQuery = true)
+    int checkAuthentication(String username, String password);
 
     // Find user by username
     @Query(value = "SELECT * FROM USER WHERE username = :username", nativeQuery = true)
@@ -35,10 +47,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
         value = "UPDATE USER SET points = points + :points WHERE userID = :userID",
         nativeQuery = true)
     int updateUserPoints(@Param("userID") int userID, @Param("points") int points);
-
-    // Check if a username exists
-    @Query(value = "SELECT COUNT(*) FROM USER WHERE username = :username", nativeQuery = true)
-    int checkExistingUsername(@Param("username") String username);
 
     // Get the user ID by username
     @Query(value = "SELECT userID FROM USER WHERE username = :username", nativeQuery = true)
