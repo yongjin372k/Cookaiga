@@ -2,6 +2,10 @@ import 'dart:async'; // For Timer
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/design.dart';
 import 'package:frontend/screens/letscook_10.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:confetti/confetti.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'dart:math'; // Import this for Random
 
 class CookingStepsScreen extends StatefulWidget {
   final List<Map<String, String>> steps;
@@ -17,18 +21,147 @@ class CookingStepsScreen extends StatefulWidget {
 class _CookingStepsScreenState extends State<CookingStepsScreen> {
   int currentStep = 0;
   Timer? _timer;
+  late FlutterTts flutterTts;
+  bool isSpeaking = false; // Track if TTS is speaking
+  late ConfettiController _confettiController;
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  final List<String> encouragements = [
+    "Great job! Keep going!",
+    "You're doing amazing!",
+    "Awesome work! Let's move on.",
+    "You're a fantastic cook!",
+    "Keep it up! You're almost there!"
+  ];
+
+  final Random _random = Random();
+  
 
   @override
   void initState() {
     super.initState();
+    _initTts();
     _startTimer(); // Start the timer when the widget is initialized
+    _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _speech = stt.SpeechToText();
+
+    // Speak Step 1 when the screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _speakEncouragementAndStep(widget.steps[currentStep]['step'] ?? '');
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel(); // Cancel the timer when the widget is disposed
+    flutterTts.stop();
+    _confettiController.dispose();
     super.dispose();
   }
+
+  // Initialize Text-to-Speech
+  void _initTts() {
+    flutterTts = FlutterTts();
+    flutterTts.setLanguage("en-US");
+    flutterTts.setSpeechRate(0.4);
+  }
+
+  void _startListening() async {
+    bool available = await _speech.initialize(
+      onStatus: (status) {
+        print('🎙 Speech status: $status');
+        setState(() {
+          _isListening = status == "listening"; // Update UI when listening
+        });
+      },
+      onError: (error) => print('Speech error: $error'),
+    );
+
+    if (available) {
+      setState(() => _isListening = true);
+      _speech.listen(
+        onResult: (result) {
+          String command = result.recognizedWords.toLowerCase();
+          print("User said: $command");
+
+          if (command.contains("next step")) {
+            print("Recognized 'Next Step' command!");
+            _speech.stop(); // Stop listening
+            setState(() => _isListening = false); // Update UI
+            _goToNextStep();
+          }
+        },
+      );
+    } else {
+      print("Speech Recognition not available");
+      setState(() => _isListening = false);
+    }
+  }
+
+  void _goToNextStep() {
+    if (currentStep < widget.steps.length - 1) {
+      setState(() {
+        currentStep++;
+        _timer?.cancel(); // Cancel the previous timer
+        _startTimer(); // Start a new timer
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _speakEncouragementAndStep(widget.steps[currentStep]['step'] ?? '');
+      });
+
+      _startListening(); // Start voice recognition for "Next Step"
+    } else {
+      setState(() {
+        _confettiController.play(); // 🎉 Trigger Confetti
+        _timer?.cancel();
+      });
+
+      // Speak final encouragement before navigating
+      String finalEncouragement = "Congratulations! You've completed" + widget.recipeName + "Well done!";
+      flutterTts.speak(finalEncouragement).then((_) {
+        Future.delayed(const Duration(seconds: 2), () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LetsCook10Content(
+                recipeName: widget.recipeName, // Pass the recipe name
+                coinsEarned: 20, // Reward user for finishing
+              ),
+            ),
+          );
+        });
+      });
+    }
+  }
+
+
+  // Read step aloud
+  Future<void> _speakEncouragementAndStep(String text) async {
+    if (!isSpeaking) {
+      setState(() {
+        isSpeaking = true;
+      });
+
+      // Skip encouragement for the first step
+      if (currentStep > 0) {
+        String encouragement = encouragements[_random.nextInt(encouragements.length)];
+        await flutterTts.speak(encouragement);
+        await Future.delayed(Duration(seconds: 3)); // Ensure a small delay before continuing
+      }
+
+      // Speak the step after encouragement
+      await flutterTts.speak(text);
+
+      // Set speaking state to false after speech is done
+      setState(() {
+        isSpeaking = false;
+      });
+    }
+  }
+
+
+
 
   // Start a timer to show the check-in dialog if the user takes too long
   void _startTimer() {
@@ -103,6 +236,7 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
     final categoryRegex = RegExp(r'\((.*?)\)');
     final match = categoryRegex.firstMatch(step['step'] ?? '');
     final category = match != null ? match.group(1)!.toLowerCase() : "unknown";
+    
 
     String imagePath;
     Color backgroundColor;
@@ -140,6 +274,17 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
+              ConfettiWidget(
+                confettiController: _confettiController, // 🎉 Confetti Effect
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                maxBlastForce: 20, // More explosion power
+                minBlastForce: 5, // Less explosion power
+                emissionFrequency: 0.03,
+                numberOfParticles: 30, // Increase for more confetti
+                gravity: 0.1, // Slow falling effect
+                colors: [Colors.green, Colors.blue, Colors.pink, Colors.orange],
+              ),
               if (imagePath.isNotEmpty)
                 canvaImage(
                   imagePath,
@@ -252,28 +397,7 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                       ),
                     ),
                   GestureDetector(
-                    onTap: () {
-                      if (currentStep < widget.steps.length - 1) {
-                        setState(() {
-                          currentStep++;
-                          _timer?.cancel(); // Cancel the previous timer
-                          _startTimer(); // Start a new timer
-                        });
-                      } else {
-                        setState(() {
-                          _timer?.cancel();
-                        });
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => LetsCook10Content(
-                              recipeName: widget.recipeName, // Pass the recipe name
-                              coinsEarned: 20, // Pass default coins earned
-                            ),
-                          ),
-                        );
-                      }
-                    },
+                    onTap: () => _goToNextStep(),
                     child: Container(
                       decoration: BoxDecoration(
                         color: const Color(0xFF336A84),
