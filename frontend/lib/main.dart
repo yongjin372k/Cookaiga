@@ -1,34 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/camera_screen.dart';
-import 'package:frontend/screens/design.dart';
+import 'package:frontend/screens/authpage.dart';
 import 'package:frontend/screens/homepage.dart';
-import 'package:frontend/screens/letscook_05.dart';
-import 'package:frontend/screens/rewards.dart';
-import 'screens/recipe_screen.dart';
-import 'package:frontend/screens/mykitchen_03.dart';
-import 'package:frontend/screens/checklist.dart';
+import 'package:frontend/screens/design.dart';
+import 'package:frontend/screens/jwtDecodeService.dart'; 
+
 var URL = 'http://10.0.2.2:8080'; //replace this with ur local ip / lan ip for devices connecting on same lan / server ip if hosted (10.0.2.2:8080) for localhost
 var URL2 = 'http://10.0.2.2:5000';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); 
+  final jwtService = JwtService();
+  bool isLoggedIn = await jwtService.isLoggedIn(); // Checks if JWT is valid
+
+  runApp(MyApp(isLoggedIn: isLoggedIn));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+  const MyApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner:
-          true, // Change it to 'false' if you want to remove the debug banner at the top right
+      debugShowCheckedModeBanner: false, // Remove debug banner!!
       title: 'COOKAiGA',
       theme: ThemeData(
         primarySwatch: createMaterialColor(
-            Color(0xFF80A6A4) // for Flutter, add the HEX Code after 'FF'
-            ),
+          const Color(0xFF80A6A4), // for Flutter, add the HEX Code after 'FF'
+        ),
       ),
-      home: HomePage(),
+      home: isLoggedIn ? const HomePage() : const AuthPage(), // Login check
     );
   }
 }
