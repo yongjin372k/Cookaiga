@@ -34,7 +34,7 @@ public class InventoryController {
     public Ingredients updateIngredient(
         @PathVariable Long id,
         @RequestBody Ingredients ingredient,
-        @RequestParam(value = "userID", defaultValue = "1") Long userID // Default userID to 1
+        @RequestParam Long userID
     ) {
         return ingredientService.updateIngredient(id, ingredient, userID);
     }

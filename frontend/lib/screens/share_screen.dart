@@ -1,11 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:frontend/main.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'package:frontend/screens/homepage.dart'; // For navigation to HomePage
-import 'package:frontend/screens/design.dart'; // For canvaImage
-import 'package:frontend/screens/community_screen.dart'; // Import the CommunityPage
+import 'package:frontend/main.dart';
+import 'package:frontend/screens/homepage.dart';
+import 'package:frontend/screens/design.dart';
+import 'package:frontend/screens/community_screen.dart';
+import 'package:frontend/screens/jwtDecodeService.dart';
 
 class SharePage extends StatefulWidget {
   const SharePage({Key? key}) : super(key: key);
@@ -17,6 +18,8 @@ class SharePage extends StatefulWidget {
 class _SharePageState extends State<SharePage> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
+  final JwtService _jwtService = JwtService(); // JWT Service for retrieving userID & token
+  bool _isUploading = false;
 
   // Function to pick an image from the gallery
   Future<void> _pickImage() async {
@@ -32,52 +35,51 @@ class _SharePageState extends State<SharePage> {
     }
   }
 
-  // Function to upload the image to the backend
+  // Function to upload the image with JWT token authentication
   Future<void> _uploadImage() async {
     if (_selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select an image first.")),
-      );
+      _showMessage("Please select an image first.");
       return;
     }
 
+    setState(() => _isUploading = true);
+
     try {
-      // Backend API endpoint
+      final int? userID = await _jwtService.getUserID(); // Fetch logged-in user ID
+      final String? token = await _jwtService.storage.read(key: "jwt_token"); // Get JWT token
+
+      if (userID == null || token == null) {
+        _showMessage("Authentication failed. Please log in again.");
+        return;
+      }
+
       final String apiUrl = "$URL/api/posts/upload";
-
-      // Create a multipart request
       var request = http.MultipartRequest('POST', Uri.parse(apiUrl))
-        ..fields['userID'] = '1' // Replace with actual user ID
-        ..files.add(await http.MultipartFile.fromPath(
-          'imagePath', // Name of the field for the file in the backend
-          _selectedImage!.path,
-        ));
+        ..headers['Authorization'] = "Bearer $token" // Send JWT token in the headers
+        ..fields['userID'] = userID.toString()
+        ..files.add(await http.MultipartFile.fromPath('imagePath', _selectedImage!.path));
 
-      // Send the request
       var response = await request.send();
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Photo shared successfully!")),
-        );
-
-        // Navigate to CommunityPage
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const CommunityPage()),
-        );
+        _showMessage("Photo shared successfully!");
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CommunityPage()));
       } else {
-        print("Failed to share photo. Status code: ${response.statusCode}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to share photo.")),
-        );
+        _showMessage("Failed to share photo. Error ${response.statusCode}");
       }
     } catch (e) {
-      print("Error uploading file: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error sharing photo.")),
-      );
+      _showMessage("Error sharing photo. Please try again.");
+      print("Upload error: $e");
+    } finally {
+      setState(() => _isUploading = false);
     }
+  }
+
+  // Show SnackBar Message
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message, textAlign: TextAlign.center)),
+    );
   }
 
   @override
@@ -107,6 +109,7 @@ class _SharePageState extends State<SharePage> {
             ),
           ),
           const SizedBox(height: 16),
+
           // Image Container
           GestureDetector(
             onTap: _pickImage,
@@ -138,6 +141,7 @@ class _SharePageState extends State<SharePage> {
             ),
           ),
           const SizedBox(height: 16),
+
           // Disclaimer Text
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -152,9 +156,10 @@ class _SharePageState extends State<SharePage> {
             ),
           ),
           const SizedBox(height: 16),
+
           // Share Photo Button
           ElevatedButton(
-            onPressed: _uploadImage,
+            onPressed: _isUploading ? null : _uploadImage,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF336A84),
               shape: RoundedRectangleBorder(
@@ -162,15 +167,17 @@ class _SharePageState extends State<SharePage> {
               ),
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
             ),
-            child: const Text(
-              'share my photo',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Chewy',
-              ),
-            ),
+            child: _isUploading
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text(
+                    'share my photo',
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Chewy',
+                    ),
+                  ),
           ),
         ],
       ),

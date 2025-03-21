@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/main.dart';
-import 'design.dart'; // Import for createMaterialColor.
-import 'homepage.dart'; // Import the HomePage
-import 'myrewards2.dart'; // Import the MyRewards2Page
 import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:frontend/screens/jwtDecodeService.dart'; // Import JWT Service
+import 'package:frontend/main.dart';
+import 'design.dart';
+import 'homepage.dart';
+import 'myrewards2.dart';
 import 'package:http/http.dart' as http;
 
 class StickerCollectionPage extends StatefulWidget {
@@ -14,41 +15,52 @@ class StickerCollectionPage extends StatefulWidget {
 }
 
 class _StickerCollectionPageState extends State<StickerCollectionPage> {
-  final int _totalStickerSlotsPerPage = 12; // Total slots per page
+  final JwtService _jwtService = JwtService(); // JWT Service instance
+  final int _totalStickerSlotsPerPage = 12;
   final List<Color> _pageColors = [
     const Color(0xFF80A6A4),
     const Color(0xFF8C92AC),
     const Color(0xFFF1BFA1),
-  ]; // Page colors for empty slots
+  ];
 
-  int _currentPage = 1; // Current page number
-  List<Map<String, dynamic>> _userStickers = []; // Sticker details
-  bool _isLoading = true; // Loading state
+  int _currentPage = 1;
+  List<Map<String, dynamic>> _userStickers = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserStickers(); // Fetch user stickers when the page loads
+    _fetchUserStickers();
   }
 
-  // Fetch all sticker IDs redeemed by the user, then fetch their details
+  // Fetch all stickers redeemed by the user
   Future<void> _fetchUserStickers() async {
-    const int userID = 1; // Replace with the actual user ID
+    // Retrieve the JWT token and user ID
+    String? token = await _jwtService.storage.read(key: "jwt_token");
+    Map<String, dynamic>? decodedToken = await _jwtService.getDecodedToken();
+    int? userID = decodedToken?['id'];
+
+    if (userID == null || token == null) {
+      print("User authentication failed.");
+      return;
+    }
+
     final String apiUrl = '$URL/api/redemptions/user/$userID';
 
     try {
-      print("Fetching sticker IDs for user $userID from: $apiUrl");
-      final response = await http.get(Uri.parse(apiUrl));
+      print("Fetching stickers for user $userID from: $apiUrl");
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
       if (response.statusCode == 200) {
-        // Decode response body as UTF-8
         final List<dynamic> redemptionData = jsonDecode(utf8.decode(response.bodyBytes));
         print("Redemptions response: $redemptionData");
 
         final stickers = await Future.wait(
           redemptionData.map((redemption) async {
             final stickerID = redemption['stickerID'];
-            // Parse the `redeemedAt` field and extract only the date
             final redemptionDate = redemption['redeemedAt'] != null
                 ? DateTime.parse(redemption['redeemedAt'])
                     .toLocal()
@@ -56,13 +68,10 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
                     .split('T')[0]
                 : "Unknown Date";
 
-            final stickerDetails = await _fetchStickerDetails(stickerID);
+            final stickerDetails = await _fetchStickerDetails(stickerID, token);
 
             if (stickerDetails != null) {
-              return {
-                ...stickerDetails,
-                'redeemedAt': redemptionDate,
-              };
+              return {...stickerDetails, 'redeemedAt': redemptionDate};
             }
             return null;
           }),
@@ -81,31 +90,31 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
   }
 
   // Fetch individual sticker details using its ID
-  Future<Map<String, dynamic>?> _fetchStickerDetails(int stickerID) async {
+  Future<Map<String, dynamic>?> _fetchStickerDetails(int stickerID, String token) async {
     final String stickerApiUrl = '$URL/api/sticker/$stickerID';
 
     try {
       print("Fetching sticker details for Sticker ID: $stickerID");
-      final response = await http.get(Uri.parse(stickerApiUrl));
+      final response = await http.get(
+        Uri.parse(stickerApiUrl),
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
       if (response.statusCode == 200) {
-        // Decode response body as UTF-8
         final Map<String, dynamic> stickerDetails = jsonDecode(utf8.decode(response.bodyBytes));
         print("Response for sticker $stickerID: $stickerDetails");
-        return stickerDetails; // Return the full sticker details
+        return stickerDetails;
       } else {
         print("Failed to fetch sticker $stickerID. Status Code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching sticker details for ID $stickerID: $e");
     }
-
-    return null; // Return null if fetch fails
+    return null;
   }
 
-  // Helper method to build an image widget from the backend
+  // Build sticker image from backend
   Widget _buildBackendImage(String filePath) {
-    // Remove "assets/stickers/" from the filePath if it exists
     final String sanitizedFileName = filePath.replaceFirst("assets/stickers/", "");
     final String backendUrl = "$URL/api/stickers/$sanitizedFileName";
 
@@ -115,9 +124,7 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
       height: 200,
       fit: BoxFit.cover,
       loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) {
-          return child;
-        }
+        if (loadingProgress == null) return child;
         return const Center(child: CircularProgressIndicator());
       },
       errorBuilder: (context, error, stackTrace) {
@@ -131,20 +138,16 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
     );
   }
 
-  // Show dialog with sticker details
+  // Show sticker details dialog
   void _showStickerDetailsDialog(Map<String, dynamic> stickerData) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF5B98A9),
           title: Text(
             stickerData['stickerName'],
-            style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'Chewy',
-              fontSize: 26,
-            ),
+            style: const TextStyle(color: Colors.white, fontFamily: 'Chewy', fontSize: 26),
             textAlign: TextAlign.center,
           ),
           content: Column(
@@ -154,21 +157,13 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
               const SizedBox(height: 10),
               Text(
                 stickerData['stickerDesc'] ?? "No description available.",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'Chewy',
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.white, fontFamily: 'Chewy', fontSize: 16),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
               Text(
                 "Redeemed on: ${stickerData['redeemedAt']}",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'Chewy',
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Colors.white, fontFamily: 'Chewy', fontSize: 12),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -179,18 +174,9 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF336B89),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: const Text(
-                  "Close",
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontFamily: 'Chewy',
-                  ),
-                ),
+                child: const Text("Close", style: TextStyle(fontSize: 18, color: Colors.white, fontFamily: 'Chewy')),
               ),
             ),
           ],
@@ -198,7 +184,7 @@ class _StickerCollectionPageState extends State<StickerCollectionPage> {
       },
     );
   }
-
+  
   @override
   Widget build(BuildContext context) {
     return Theme(

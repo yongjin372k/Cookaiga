@@ -7,7 +7,7 @@ import 'package:frontend/screens/letscook_03.dart';
 import 'package:frontend/screens/mykitchen_03.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'dart:async';
+import 'package:frontend/screens/jwtDecodeService.dart';
 
 class CameraPageInventory extends StatefulWidget {
   @override
@@ -20,9 +20,9 @@ class _CameraPageStateInventory extends State<CameraPageInventory> {
   File? _capturedImage;
   File? _selectedImage;
   bool _isCameraInitialized = false;
+  final JwtService _jwtService = JwtService(); // JWT Service for retrieving userID & token
 
   final String apiUrl = "$URL/api/image-analysis/analyze"; // Base API URL
-  final int userId = 1; // Example userID (make this dynamic if needed)
 
   @override
   void initState() {
@@ -31,11 +31,11 @@ class _CameraPageStateInventory extends State<CameraPageInventory> {
   }
 
   Future<void> _initializeCamera() async {
-    cameras = await availableCameras(); // Get available cameras
+    cameras = await availableCameras();
     if (cameras != null && cameras!.isNotEmpty) {
       _cameraController = CameraController(
-        cameras![0], // Use the first available camera
-        ResolutionPreset.high, // Use high resolution
+        cameras![0],
+        ResolutionPreset.high,
       );
 
       await _cameraController?.initialize();
@@ -53,7 +53,6 @@ class _CameraPageStateInventory extends State<CameraPageInventory> {
           _capturedImage = File(imageFile.path);
         });
 
-        // Send the captured image to the API
         await _sendImageToApi(_capturedImage!);
       } catch (e) {
         print("Error taking picture: $e");
@@ -67,60 +66,65 @@ class _CameraPageStateInventory extends State<CameraPageInventory> {
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
-        _isCameraInitialized = false; // Stop the camera preview
+        _isCameraInitialized = false;
       });
 
-      // Send the selected image to the API
       await _sendImageToApi(_selectedImage!);
     }
   }
 
   Future<void> _sendImageToApi(File image) async {
     try {
-      // Build the API URL for image analysis
-      String urlWithUserId = "$apiUrl?userID=$userId";
+      // Retrieve the JWT token and user ID
+      String? token = await _jwtService.storage.read(key: "jwt_token");
+      Map<String, dynamic>? decodedToken = await _jwtService.getDecodedToken();
+      int? userID = decodedToken?['id'];
 
-      // Create a multipart request
-      var request = http.MultipartRequest('POST', Uri.parse(urlWithUserId));
+      if (userID == null || token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("User not logged in. Please log in again.")),
+        );
+        return;
+      }
 
-      // Add the image file to the request with the key 'imageUrl'
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'imageUrl', // Key expected by the backend
+      // Append userID to the API URL
+      String urlWithUserId = "$apiUrl?userID=$userID";
+
+      var request = http.MultipartRequest('POST', Uri.parse(urlWithUserId))
+        ..headers['Authorization'] = 'Bearer $token' // Attach JWT token
+        ..files.add(await http.MultipartFile.fromPath(
+          'imageUrl', // Backend expects this field name
           image.path,
-        ),
-      );
+        ));
 
-      // Send the request
       var response = await request.send();
 
       if (response.statusCode == 200) {
-        // Successfully sent image
         print("Image successfully sent to the API!");
 
-        // Fetch generated recipes directly from the backend
+        // Fetch the user's inventory from the backend
         final recipeResponse = await http.get(
-          Uri.parse('$URL2/api/inventory-list?userID=1'),
-          headers: {"Content-Type": "application/json"},
+          Uri.parse('$URL2/api/inventory-list?userID=$userID'),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          },
         );
 
         if (recipeResponse.statusCode == 200) {
-          // Parse the response and extract recipes
           final responseData = jsonDecode(recipeResponse.body);
-          // final List<String> recipes = (responseData['recipes'] as List<dynamic>).cast<String>();
 
-          // Navigate to the LetsCook03Content page with only the recipes
+          // Navigate to MyKitchen03Content page
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => MyKitchen03Content()
+              builder: (context) => MyKitchen03Content(),
             ),
           );
         } else {
-          throw Exception('Failed to fetch recipes');
+          throw Exception('Failed to fetch inventory list');
         }
       } else {
-        // Handle API errors
         final responseBody = await response.stream.bytesToString();
         print("Failed to send image. Status Code: ${response.statusCode}");
         print("Error Response: $responseBody");
@@ -218,5 +222,4 @@ class _CameraPageStateInventory extends State<CameraPageInventory> {
       ),
     );
   }
-
 }
