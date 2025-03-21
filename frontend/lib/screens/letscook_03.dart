@@ -35,14 +35,14 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
     }
   }
 
-
+  // Settle
   Future<void> fetchRecipes() async {
     setState(() {
       isLoading = true;
     });
 
     try {
-      // Fetch recipes from backend
+      // Fetch recipes from backend (RecipeController)
       final recipeResponse = await http.post(
         Uri.parse('$URL/api/recipes/generate-from-database'),
         headers: {"Content-Type": "application/json"},
@@ -70,6 +70,7 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
     }
   }
 
+  // Settle
   Future<void> fetchRecipeOverview(String recipeName) async {
     try {
       final response = await http.post(
@@ -80,30 +81,28 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> overviewLines = data['overview'];
 
-        // Parse data for recipe overview
-        String recipeName = overviewLines.firstWhere(
-          (line) => line.toString().startsWith("Recipe name:"),
-          orElse: () => "Unknown Recipe", // Default value if not found
-        ).replaceFirst("Recipe name:", "").trim();
+        // Ensure data is properly extracted
+        String fetchedRecipeName = data['recipe_name'] ?? "Unknown Recipe";
+        List<String> fetchedIngredients = List<String>.from(data['ingredients'] ?? []);
+        List<String> fetchedEquipment = List<String>.from(data['equipment'] ?? []);
 
-        String ingredients = overviewLines.skipWhile(
-          (line) => !line.toString().startsWith("Ingredients:"),
-        ).skip(1).takeWhile((line) => !line.toString().startsWith("Required equipment:")).join("\n").trim();
+        if (fetchedRecipeName.isEmpty || fetchedIngredients.isEmpty || fetchedEquipment.isEmpty) {
+          throw Exception("Missing data in recipe overview");
+        }
 
-        String equipment = overviewLines.skipWhile(
-          (line) => !line.toString().startsWith("Required equipment:"),
-        ).skip(1).join("\n").trim();
+        // Join lists into readable text
+        String ingredientsText = fetchedIngredients.join("\n");
+        String equipmentText = fetchedEquipment.join("\n");
 
-        // Navigate to Overview Recipe Screen
+        // Navigate to Checklist Page with Corrected Data
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ChecklistPage(
-              recipeName: recipeName,
-              ingredients: ingredients,
-              equipment: equipment,
+              recipeName: fetchedRecipeName,
+              ingredients: ingredientsText,
+              equipment: equipmentText,
             ),
           ),
         );
@@ -127,6 +126,7 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

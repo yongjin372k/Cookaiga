@@ -14,7 +14,6 @@ CORS(app)
 
 # Set your OpenAI API key
 
-
 # Connect to MySQL Database
 conn = mysql.connector.connect(
     host="localhost",
@@ -24,6 +23,7 @@ conn = mysql.connector.connect(
 )
 cursor = conn.cursor()
 
+
 # API endpoint to fetch ingredients
 @app.route('/ingredients', methods=['GET'])
 def get_ingredients():
@@ -32,7 +32,8 @@ def get_ingredients():
     ingredients_list = [f"{row[1]} {row[2]} of {row[0]}" for row in ingredients]
     return jsonify({"ingredients": ingredients_list})
 
-# API endpoint to generate recipes
+
+# API endpoint to generate recipes (Settle)
 @app.route('/generate-recipe', methods=['POST'])
 def generate_recipe_api():
     data = request.json
@@ -41,7 +42,7 @@ def generate_recipe_api():
         return jsonify({"error": "No ingredients provided"}), 400
 
     prompt = f"""
-    Using the following ingredients: {ingredients}, suggest 4 simple and healthy recipe names only. Do not include detailed steps or descriptions, just the names of the recipes.
+    Using the following ingredients: {ingredients}, suggest 4 simple and healthy breakfast recipe names only. Do not include detailed steps or descriptions, just the names of the recipes.
     """
     
     response = client.completions.create(
@@ -59,6 +60,7 @@ def generate_recipe_api():
     return jsonify({"recipe": recipe_list})
 
 
+# Generate Recipes overview using the recipe_name from the selected name (Settle)
 @app.route('/generate-recipe-overview', methods=['POST'])
 def generate_recipe_overview():
     data = request.json
@@ -68,11 +70,23 @@ def generate_recipe_overview():
         return jsonify({"error": "Recipe name is required"}), 400
     
     prompt = f"""
-    Provide an overview of the recipe "{recipe_name}". Include:
-    1. Recipe name
-    2. Ingredients
-    3. Required equipment
+    Provide an overview of the recipe "{recipe_name}" in the following structured format:
+    
+    Recipe name: [Name]
+    
+    Ingredients:
+    - [Ingredient 1]
+    - [Ingredient 2]
+    - [Ingredient 3]
+    
+    Required equipment:
+    - [Equipment 1]
+    - [Equipment 2]
+    - [Equipment 3]
+    
+    Ensure the structure remains consistent. **Do not include optional toppings or garnish.**
     """
+
     response = client.completions.create(
         model="gpt-35-turbo-instruct",
         prompt=prompt,
@@ -83,26 +97,82 @@ def generate_recipe_overview():
         presence_penalty=0
     )
     
-    # Process the overview and remove empty lines
-    overview = response.choices[0].text.strip().split("\n")
-    overview = [line for line in overview if line.strip()]  # Remove empty lines
-
-    # Optional: Clean up section headers and "-" prefixes
-    processed_overview = []
-    for line in overview:
-        # Remove numbered prefixes (e.g., "1.", "2.", "3.")
-        if line.strip().startswith(("1.", "2.", "3.")):
-            line = line.split(".", 1)[1].strip()  # Remove the number prefix
-        
-        # Remove "-" at the start of a line
-        if line.strip().startswith("-"):
-            line = line.strip().lstrip("-").strip()  # Remove the dash and extra spaces
-        
-        processed_overview.append(line)
+    # Process the response
+    overview_lines = response.choices[0].text.strip().split("\n")
     
-    return jsonify({"overview": processed_overview})
+    # Ensure correct structure
+    structured_data = {
+        "recipe_name": "",
+        "ingredients": [],
+        "equipment": []
+    }
+
+    section = None
+    for line in overview_lines:
+        line = line.strip()
+        if line.startswith("Recipe name:"):
+            structured_data["recipe_name"] = line.replace("Recipe name:", "").strip()
+        elif line.startswith("Ingredients:"):
+            section = "ingredients"
+        elif line.startswith("Required equipment:"):
+            section = "equipment"
+        elif section == "ingredients" and line.startswith("-"):
+            structured_data["ingredients"].append(line.lstrip("-").strip())
+        elif section == "equipment" and line.startswith("-"):
+            structured_data["equipment"].append(line.lstrip("-").strip())
+
+    return jsonify({
+        "recipe_name": structured_data["recipe_name"],
+        "ingredients": structured_data["ingredients"],
+        "equipment": structured_data["equipment"]
+    })
 
 
+# Swap Ingredients in case dun have
+@app.route('/swap-ingredient', methods=['POST'])
+def swap_ingredient():
+    data = request.json
+    missing_ingredient = data.get("ingredient")
+
+    if not missing_ingredient:
+        return jsonify({"error": "Ingredient not provided"}), 400
+
+    # 🔥 Query GPT-3.5 for ingredient alternatives
+    prompt = f"""
+    I am missing {missing_ingredient} in my kitchen. Suggest 3 alternative ingredients along with their appropriate quantities that I can use instead. 
+    Provide the response in the following format:
+    "(Quantity) Alternative Ingredient, (Quantity) Alternative Ingredient, (Quantity) Alternative Ingredient"
+    Ensure each alternative ingredient is properly formatted with its quantity.
+    Example:
+    "1/4 cup Applesauce, 1 tbsp Chia Seeds, 3 tbsp Aquafaba"
+    Do NOT use numbering (1, 2, 3), 'and', or newline characters. 
+    Keep it consistent.
+    """
+
+    response = client.completions.create(
+        model="gpt-35-turbo-instruct",
+        prompt=prompt,
+        temperature=1,
+        max_tokens=1000,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+
+    # Extract alternative ingredients from GPT-3.5 response
+    alternative_text = response.choices[0].text.strip()
+    if alternative_text.startswith('"') and alternative_text.endswith('"'):
+            alternative_text = alternative_text[1:-1]
+    alternatives = [
+            alt.strip().capitalize()  # Capitalize first letter of each alternative
+            for alt in alternative_text.replace("\n", ", ").split(",")  # Ensure proper splitting
+            if alt.strip().lower() not in ["and"]  # Remove "and"
+        ]
+    print("Alternatives", alternatives)
+    return jsonify({"alternatives": alternatives})
+
+
+# Generate Recipe Steps using the recipe name and ingredient selected earlier
 @app.route('/generate-recipe-steps', methods=['POST'])
 def generate_recipe_steps():
     data = request.json
@@ -112,8 +182,12 @@ def generate_recipe_steps():
     if not recipe_name:
         return jsonify({"error": "Recipe name is required"}), 400
     
-    formatted_ingredients = "\n".join([f"- {ingredient}" for ingredient in ingredients])
+    if not ingredients or not isinstance(ingredients, list):
+        return jsonify({"error": "Valid ingredient list is required"}), 400
 
+    # Format ingredients properly for GPT request
+    formatted_ingredients = "\n".join([f"- {ingredient}" for ingredient in ingredients])
+    print("Updated Ingredients List:", formatted_ingredients)
 
     prompt = f"""
     Generate a simple step-by-step guide for cooking "{recipe_name}" with a focus on parent-child collaboration. Using the following ingredients: {formatted_ingredients}.Each step must include:
@@ -155,6 +229,7 @@ def generate_recipe_steps():
     return jsonify({"steps": steps})
 
 
+# Not used for now
 @app.route('/generate-recipe-images', methods=['POST'])
 async def generate_recipe_images():
     data = request.json
@@ -177,6 +252,17 @@ async def generate_recipe_images():
     image_urls = {name: url for name, url in results}
 
     return jsonify({"image_urls": image_urls})
+
+
+
+
+
+
+
+
+
+
+# For Camera Component
 
 # Define a function to extract potential ingredients
 def extract_ingredient(item):

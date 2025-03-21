@@ -41,6 +41,10 @@ dependencies:
   path_provider: ^2.0.12
   vibration: ^1.7.3
   string_similarity: ^2.0.0
+  flutter_tts: ^3.8.5
+  confetti: ^0.8.0
+  speech_to_text: ^6.6.0
+  permission_handler: ^11.0.1
 
 
 dev_dependencies:
