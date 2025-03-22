@@ -9,6 +9,7 @@ import 'package:frontend/screens/overview_recipe.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'homepage.dart';
+import 'package:frontend/screens/jwtDecodeService.dart'; // Import JWT Service
 
 class MyKitchen03Content extends StatefulWidget {
   @override
@@ -18,8 +19,9 @@ class MyKitchen03Content extends StatefulWidget {
 class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   // Dummy data for the inventory
   List<Map<String, dynamic>> inventory = []; // Inventory data from the backend
+  final JwtService _jwtService = JwtService(); // JWT Service instance
 
-  final String baseUrl = "$URL/api/ingredients?userID=1"; // Replace with your backend URL
+  //final String baseUrl = "$URL/api/ingredients?userID=1"; // Replace with your backend URL
 
   @override
   void initState() {
@@ -30,6 +32,18 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   // Fetch inventory data from the backend
   Future<void> fetchInventory() async {
     try {
+
+      String? token = await _jwtService.storage.read(key: "jwt_token");
+      Map<String, dynamic>? decodedToken = await _jwtService.getDecodedToken();
+      int? userID = decodedToken?['id'];
+
+      if (userID == null || token == null) {
+        print("User not authenticated.");
+        return;
+      }
+
+      final String baseUrl = "$URL/api/ingredients?userID=$userID";
+
       final response = await http.get(Uri.parse(baseUrl));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
@@ -112,16 +126,29 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
 
   // Add a new inventory item
   Future<void> addInventoryItem(String itemName, String quantity, String unit, String expiryDate) async {
+
+    String? token = await _jwtService.storage.read(key: "jwt_token");
+      Map<String, dynamic>? decodedToken = await _jwtService.getDecodedToken();
+      int? userID = decodedToken?['id'];
+
+      if (userID == null || token == null) {
+        print("User not authenticated.");
+        return;
+      }
+
+    final String baseUrl = "$URL/api/ingredients?userID=$userID";
+    
     final newItem = {
       'item': itemName,
       'quantityWithUnit': '$quantity $unit',
       'expiry': expiryDate,
-      'userID': 1, // Static userId set to 1
+      'userID': userID, // Static userId set to 1
     };
     try {
       final response = await http.post(
         Uri.parse(baseUrl),
-        headers: {"Content-Type": "application/json"},
+        headers: {"Content-Type": "application/json",
+                  'Authorization': 'Bearer $token',},
         body: jsonEncode(newItem),
       );
       if (response.statusCode == 200) {
@@ -137,10 +164,22 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   // Update an existing inventory item
   Future<void> updateInventoryItem(int id, Map<String, dynamic> updatedItem) async {
     try {
+
+      // JWT token decoding
+      String? token = await _jwtService.storage.read(key: "jwt_token");
+      Map<String, dynamic>? decodedToken = await _jwtService.getDecodedToken();
+      int? userID = decodedToken?['id'];
+
+      if (userID == null || token == null) {
+        print("User not authenticated.");
+        return;
+      }
+
       // Call the backend API to update the ingredient
       final response = await http.post(
-        Uri.parse("$URL/api/ingredients/update/$id?userID=1"), // Updated URL with POST
-        headers: {"Content-Type": "application/json"},
+        Uri.parse("$URL/api/ingredients/update/$id?userID=$userID"), // Updated URL with POST
+        headers: {"Content-Type": "application/json",
+                  'Authorization': 'Bearer $token',},
         body: jsonEncode(updatedItem), // Send updated fields
       );
 
@@ -157,6 +196,18 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   // Delete an inventory item
   Future<void> deleteInventoryItem(int id) async {
     try {
+
+      // JWT token decoding
+      String? token = await _jwtService.storage.read(key: "jwt_token");
+      Map<String, dynamic>? decodedToken = await _jwtService.getDecodedToken();
+      int? userID = decodedToken?['id'];
+
+      if (userID == null || token == null) {
+        print("User not authenticated.");
+        return;
+      }
+      final String baseUrl = "$URL/api/ingredients?userID=$userID";
+
       final response = await http.delete(Uri.parse("$baseUrl/$id"));
       if (response.statusCode == 204) {
         fetchInventory(); // Refresh the list after deletion

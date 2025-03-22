@@ -4,27 +4,44 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'design.dart';
 import 'homepage.dart';
+import 'package:frontend/screens/jwtDecodeService.dart';
 
 class LetsCook10Content extends StatelessWidget {
-  final String recipeName; // Recipe name passed from CookingStepsScreen
-  final int coinsEarned; // Coins earned (default 20)
+  final String recipeName;
+  final int coinsEarned;
 
   const LetsCook10Content({
     Key? key,
-    required this.recipeName,
-    required this.coinsEarned,
+    required this.recipeName,       // Recipe name passed down
+    required this.coinsEarned,      // Coins earned (default 20)
   }) : super(key: key);
 
   // Function to update user points
-  Future<void> _updateUserPoints() async {
-    const int userID = 1; // Replace with the actual user ID
-    const int pointsToAdd = 20;
+  Future<void> _updateUserPoints(BuildContext context) async {
+    final JwtService _jwtService = JwtService();
+
+    // Retrieve the JWT token and user ID
+    String? token = await _jwtService.storage.read(key: "jwt_token");
+    Map<String, dynamic>? decodedToken = await _jwtService.getDecodedToken();
+    int? userID = decodedToken?['id'];
+
+    if (userID == null || token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("User not logged in. Please log in again.")),
+      );
+      return;
+    }
+
+    final int pointsToAdd = 20;
     final String apiUrl = "$URL/api/users/$userID/points?points=$pointsToAdd";
 
     try {
       final response = await http.put(
         Uri.parse(apiUrl),
-        headers: {'Content-Type': 'application/json'}, // Optional
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -37,12 +54,11 @@ class LetsCook10Content extends StatelessWidget {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     // Call _updateUserPoints when the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateUserPoints();
+      _updateUserPoints(context);
     });
 
     return Scaffold(
@@ -122,9 +138,9 @@ class LetsCook10Content extends StatelessWidget {
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const HomePage(), // Back to homepage
+                          builder: (context) => const HomePage(),
                         ),
-                        (route) => false, // Remove all previous routes
+                        (route) => false,
                       );
                     },
                     style: ElevatedButton.styleFrom(

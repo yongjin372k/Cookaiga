@@ -25,6 +25,9 @@ public class User {
     @Column(name = "fullname")
     private String fullname;
 
+    @Column(name = "password")
+    private String password;
+
     @Column(name = "points")                        // Also Known As Coins
     private int points = 0;
 
@@ -37,15 +40,17 @@ public class User {
         int userID,
         String username,
         String fullname,
+        String password,
         int points,
         LocalDateTime createdAt
     ) {
         this.userID = userID;
         this.username = username;
+        this.fullname = fullname;
+        this.password = password;
         this.points = points;
         this.createdAt = createdAt;
     }
-
 
     public int getUserID() {
         return this.userID;
@@ -71,6 +76,14 @@ public class User {
         this.fullname = fullname;
     }
 
+    public String getPassword() {
+        return this.password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     public int getPoints() {
         return this.points;
     }
@@ -93,9 +106,12 @@ public class User {
             " userID='" + getUserID() + "'" +
             ", username='" + getUsername() + "'" +
             ", fullname='" + getFullname() + "'" +
+            ", password='" + getPassword() + "'" +
             ", points='" + getPoints() + "'" +
             ", createdAt='" + getCreatedAt() + "'" +
             "}";
     }
+
+
 
 }

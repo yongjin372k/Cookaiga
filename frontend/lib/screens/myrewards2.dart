@@ -1,10 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:frontend/main.dart';
 import 'package:frontend/screens/rewards.dart';
+import 'package:frontend/screens/jwtDecodeService.dart'; // Import JWT Service
 import 'design.dart';
 import 'homepage.dart';
-import 'myrewards3.dart'; // Import MyRewards3Page
-import 'dart:convert';
+import 'myrewards3.dart';
 import 'package:http/http.dart' as http;
 
 class MyRewards2Page extends StatefulWidget {
@@ -15,92 +16,82 @@ class MyRewards2Page extends StatefulWidget {
 }
 
 class _MyRewards2PageState extends State<MyRewards2Page> {
-  int _userPoints = 0; // Variable to hold the user's points
-  bool _isLoading = true; // Loading state for user points
+  int _userPoints = 0; // User's points
+  bool _isLoading = true; // Loading state
+  final JwtService _jwtService = JwtService(); // JWT Service instance
 
   @override
   void initState() {
     super.initState();
-    _fetchUserPoints(); // Fetch user points when the page loads
+    _fetchUserPoints();
   }
 
-  // Function to fetch user points from the backend
+  // Fetch user points from backend
   Future<void> _fetchUserPoints() async {
-    const int userID = 1; // Replace with the actual user ID
+
+    // Retrieve the JWT token and user ID
+    String? token = await _jwtService.storage.read(key: "jwt_token");
+    Map<String, dynamic>? decodedToken = await _jwtService.getDecodedToken();
+    int? userID = decodedToken?['id'];
+
+    if (userID == null || token == null) {
+      print("User authentication failed.");
+      setState(() => _isLoading = false);
+      return;
+    }
+
     final String apiUrl = "$URL/api/users/$userID";
 
     try {
-      final response = await http.get(Uri.parse(apiUrl));
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          _userPoints = data['points']; // Assuming the response contains a `points` field
+          _userPoints = data['points'] ?? 0;
           _isLoading = false;
         });
       } else {
         print("Failed to fetch user points. Status Code: ${response.statusCode}");
-        setState(() {
-          _userPoints = 0; // Default to 0 on failure
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       print("Error fetching user points: $e");
-      setState(() {
-        _userPoints = 0; // Default to 0 on exception
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
-  // Helper method to show a dialog when points are insufficient
+  // Show insufficient points dialog
   void _showInsufficientPointsDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent dismissing the dialog without action
-      builder: (BuildContext context) {
+      barrierDismissible: false,
+      builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF5B98A9),
           title: const Text(
             "Not Enough Points",
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: 'Chewy',
-              fontSize: 24,
-            ),
+            style: TextStyle(color: Colors.white, fontFamily: 'Chewy', fontSize: 24),
             textAlign: TextAlign.center,
           ),
           content: const Text(
             "You need at least 60 points to purchase this sticker.",
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: 'Chewy',
-              fontSize: 18,
-            ),
+            style: TextStyle(color: Colors.white, fontFamily: 'Chewy', fontSize: 18),
             textAlign: TextAlign.center,
           ),
           actions: [
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                },
+                onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF336B89),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 ),
-                child: const Text(
-                  'OK',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontFamily: 'Chewy',
-                  ),
-                ),
+                child: const Text("OK", style: TextStyle(fontSize: 18, color: Colors.white, fontFamily: 'Chewy')),
               ),
             ),
           ],
@@ -112,7 +103,7 @@ class _MyRewards2PageState extends State<MyRewards2Page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF5B98A9), // Background color
+      backgroundColor: const Color(0xFF5B98A9),
       body: SafeArea(
         child: Column(
           children: [
@@ -121,14 +112,11 @@ class _MyRewards2PageState extends State<MyRewards2Page> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Back button with custom image that navigates to HomePage
                   GestureDetector(
                     onTap: () {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const StickerCollectionPage(),
-                        ),
+                        MaterialPageRoute(builder: (context) => const StickerCollectionPage()),
                       );
                     },
                     child: canvaImage('back_arrow.png', width: 50, height: 50),
@@ -137,24 +125,22 @@ class _MyRewards2PageState extends State<MyRewards2Page> {
               ),
             ),
             const SizedBox(height: 10),
-            // Purchase a Sticker Header
+
+            // Purchase Header
             Column(
               children: [
-                canvaImage('cart_icon.png', width: 70, height: 70), // Shopping bag image
+                canvaImage('cart_icon.png', width: 70, height: 70),
                 const SizedBox(height: 10),
               ],
             ),
             const SizedBox(height: 10),
+
             // Current Coins Display
             Column(
               children: [
                 const Text(
                   'You currently have',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontFamily: 'Chewy',
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.white, fontFamily: 'Chewy'),
                 ),
                 const SizedBox(height: 10),
                 Container(
@@ -169,47 +155,38 @@ class _MyRewards2PageState extends State<MyRewards2Page> {
                       canvaImage('reward_coin.png', width: 25, height: 25),
                       const SizedBox(width: 8),
                       _isLoading
-                          ? const CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            )
+                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
                           : Text(
                               '$_userPoints',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                color: Colors.white,
-                                fontFamily: 'Chewy',
-                              ),
+                              style: const TextStyle(fontSize: 20, color: Colors.white, fontFamily: 'Chewy'),
                             ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10), // Reduced height from 20
+            const SizedBox(height: 10),
+
             // Question Header
             const Text(
               'Would you like to purchase a\nmysterious sticker?',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.white,
-                fontFamily: 'Chewy',
-              ),
+              style: TextStyle(fontSize: 18, color: Colors.white, fontFamily: 'Chewy'),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 5), // Reduced height to bring the grid closer
-            // Sticker Options (2x2 Non-Scrollable Layout)
+            const SizedBox(height: 5),
+
+            // Sticker Options Grid
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10), // Reduced horizontal padding
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: GridView(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, // Two stickers per row
-                    mainAxisSpacing: 5, // Adjusted space between rows
-                    crossAxisSpacing: 15, // Adjusted space between columns
-                    childAspectRatio: 1, // Ensure cells are square-shaped
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 5,
+                    crossAxisSpacing: 15,
+                    childAspectRatio: 1,
                   ),
-                  physics: const NeverScrollableScrollPhysics(), // Disable scrolling
+                  physics: const NeverScrollableScrollPhysics(),
                   children: [
                     _buildStickerOption('common_sticker.png', context, true),
                     _buildStickerOption('legendary_sticker.png', context, false),
@@ -225,9 +202,8 @@ class _MyRewards2PageState extends State<MyRewards2Page> {
     );
   }
 
-  // Helper method to build a sticker option with the respective image
-  Widget _buildStickerOption(
-      String imagePath, BuildContext context, bool isCommonSticker) {
+  // Sticker Option Widget
+  Widget _buildStickerOption(String imagePath, BuildContext context, bool isCommonSticker) {
     return GestureDetector(
       onTap: () {
         if (isCommonSticker) {
@@ -246,9 +222,9 @@ class _MyRewards2PageState extends State<MyRewards2Page> {
         }
       },
       child: CircleAvatar(
-        backgroundColor: Colors.transparent, // Remove background color
-        radius: 55, // Slightly reduced size for better spacing
-        child: canvaImage(imagePath, width: 120, height: 120), // Sticker image
+        backgroundColor: Colors.transparent,
+        radius: 55,
+        child: canvaImage(imagePath, width: 120, height: 120),
       ),
     );
   }

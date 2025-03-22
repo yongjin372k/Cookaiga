@@ -28,6 +28,16 @@ public class UserService {
         return userRepository.getUserInfo(username);
     }
 
+    // Check if existing username
+    public int checkExistingUsername(String username) {
+        return userRepository.checkExistingUsername(username);
+    }
+
+    // Authenticate user
+    public boolean authenticate(String username, String password) {
+        return userRepository.checkAuthentication(username, password) == 1;
+    }
+
     // Update user points
     public User updateUserPoints(int userID, int points) {
         Optional<User> userOptional = userRepository.findById(userID);
