@@ -9,13 +9,14 @@ CREATE TABLE IF NOT EXISTS USER (
  userID INT PRIMARY KEY auto_increment,
     username VARCHAR(50) NOT NULL,
     fullname VARCHAR(50),
+    password VARCHAR(255) NOT NULL,
     points INT DEFAULT 0 CHECK (points >= 0),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 SELECT * FROM USER;
-
-INSERT INTO user (userID, username, fullname) VALUES (1, 'johnnyt', 'John Tan');
-INSERT INTO user (userID, username, fullname) VALUES (2, 'sueL', 'Sue Lim');
+-- If DROPPING USER TABLE, need DROP REDEMPTION, KITCHEN and POST first--
+INSERT INTO user (userID, username, fullname, password) VALUES (1, 'johnnyt', 'John Tan', 'xxxx');
+INSERT INTO user (userID, username, fullname, password) VALUES (2, 'sueL', 'Sue Lim', 'xxxx');
 
 -- KITCHEN TABLE --
 drop table kitchen;
@@ -38,7 +39,7 @@ CREATE TABLE IF NOT EXISTS STICKER (
     file_path VARCHAR(255) 
 );
 SELECT * FROM STICKER;
-describe STICKER;
+describe STICKER; -- INSERT ALL THE STICKERS BELOW --
 INSERT INTO sticker (stickerName, stickerDesc, points_required, file_path) VALUES 
     ('Strawberry Cake Stix', 'Sweet, soft, and bursting with berry goodness — this Strawberry Cake Stix captures the charm of a deliciously layered strawberry treat, topped with whipped cream and fresh strawberries. A perfect reward for your sweetest achievements!', 60, 'assets/stickers/sample_sticks_01.png'),
     ('Cookie Cupcake Stix', 'A delightful fusion of cookie crunch and cupcake fluff — this Cookie Cupcake Stix is the ultimate treat, featuring a swirl of frosting crowned with a cookie topper. A scrumptious reward for your tastiest triumphs!', 60, 'assets/stickers/sample_sticks_02.png'),
@@ -84,17 +85,6 @@ INSERT INTO POST (userID, imagePath) VALUES -- THESE ARE SAMPLE POSTS, DONT HAVE
     (1, 'assets/posts/sample post 10.jpg');
 
 
--- IMAGE TABLE NOT USED--
-drop table image;
-CREATE TABLE IF NOT EXISTS IMAGE (
-	imageID INT PRIMARY KEY AUTO_INCREMENT,
-    postID INT NOT NULL,
-    imagePath VARCHAR(255) NOT NULL,
-    FOREIGN KEY (postID) REFERENCES POST(postID)
-);
-SELECT * FROM IMAGE;
-
-
 -- Create the 'inventory_item' table
 drop table ingredients;
 CREATE TABLE ingredients (
@@ -114,3 +104,15 @@ VALUES
     ('Cheese', '1 gram', '2025-01-25', '1'),
     ('Butter', '3 grams', '2025-01-18', '1'),
     ('Yogurt', '4 cups', '2025-01-28', '1');
+
+
+
+-- IMAGE TABLE NOT USED--
+drop table image;
+CREATE TABLE IF NOT EXISTS IMAGE (
+	imageID INT PRIMARY KEY AUTO_INCREMENT,
+    postID INT NOT NULL,
+    imagePath VARCHAR(255) NOT NULL,
+    FOREIGN KEY (postID) REFERENCES POST(postID)
+);
+SELECT * FROM IMAGE;
