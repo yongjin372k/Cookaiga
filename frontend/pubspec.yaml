@@ -37,7 +37,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   http: ^1.1.0
   camera: ^0.10.5+9
-  image_picker: ^1.0.8
+  image_picker: any
   path_provider: ^2.0.12
   vibration: ^1.7.3
   string_similarity: ^2.0.0
@@ -47,7 +47,9 @@ dependencies:
   confetti: ^0.8.0
   speech_to_text: ^6.6.0
   permission_handler: ^11.0.1
-
+  audioplayers: any
+  logger: any
+  flutter_staggered_grid_view: any
 
 dev_dependencies:
   flutter_test:
@@ -81,48 +83,17 @@ flutter:
     - family: Chewy
       fonts:
         - asset: assets/fonts/Chewy/Chewy-Regular.ttf
+    - family: VarelaRound
+      fonts:
         - asset: assets/fonts/VarelaRound/VarelaRound-Regular.ttf
 
   assets:
-    - assets/logo/back_arrow.png
-    - assets/logo/browse_inventory.png
-    - assets/logo/browse_recipes.png
-    - assets/logo/cookaiga_logo_four.png
-    - assets/logo/cookaiga_logo_one.png
-    - assets/logo/cookaiga_logo_three.png
-    - assets/logo/cookaiga_logo_two.png
-    - assets/logo/cooking_alone.png
-    - assets/logo/cooking_with_parent.png
-    - assets/logo/hello_my_community.png
-    - assets/logo/instructions_child.png
-    - assets/logo/instructions_everyone.png
-    - assets/logo/instructions_parent.png
-    - assets/logo/lets_cook_complete.png
-    - assets/logo/cookingalone_logo.png
-    - assets/logo/lets_cook.png
-    - assets/logo/menu_achievements.png
-    - assets/logo/menu_button.png
-    - assets/logo/menu_profile.png
-    - assets/logo/menu_settings.png
-    - assets/logo/motivational_check_one.png
-    - assets/logo/motivational_check_three.png
-    - assets/logo/motivational_check_two.png
-    - assets/logo/reward_coin.png
-    - assets/logo/scan_grocery.png
-    - assets/logo/scan_ingredients.png
-    - assets/logo/splashscreen_five.png
-    - assets/logo/splashscreen_four.png
-    - assets/logo/splashscreen_one.png
-    - assets/logo/splashscreen_six.png
-    - assets/logo/splashscreen_three.png
-    - assets/logo/splashscreen_two.png
-    - assets/logo/view_my_kitchen.png
-    - assets/logo/cart_icon.png
-    - assets/logo/common_sticker.png
-    - assets/logo/rare_sticker.png
-    - assets/logo/special_sticker.png
-    - assets/logo/legendary_sticker.png
+    - assets/buttons/
     - assets/posts/
+    - assets/ingredients/
+    - assets/audio/
+    - assets/background/
+    - assets/cooking_icons/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
