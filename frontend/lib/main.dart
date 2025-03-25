@@ -1,29 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/camera_screen.dart';
-import 'package:frontend/screens/design.dart';
-import 'package:frontend/screens/homepage.dart';
-import 'package:frontend/screens/letscook_05.dart';
-import 'screens/recipe_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatelessWidget { 
+  // Stateless widgets means its appearance and properties maintains unchanged throughout its lifetime
   const MyApp({super.key});
 
+  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner:
-          true, // Change it to 'false' if you want to remove the debug banner at the top right
       title: 'COOKAiGA',
+      debugShowCheckedModeBanner: false, // Change to false if you want to hide it
       theme: ThemeData(
-        primarySwatch: createMaterialColor(
-            Color(0xFF80A6A4) // for Flutter, add the HEX Code after 'FF'
-            ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF80A6A4)),
+        useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: SplashScreen(),
     );
   }
 }

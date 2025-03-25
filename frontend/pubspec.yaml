@@ -1,5 +1,5 @@
-name: frontend
-description: A new Flutter project.
+name: frontend_v2
+description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.1.3 <4.0.0'
+  sdk: ^3.6.1
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -30,17 +30,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  audioplayers: any
+  camera: any
+  logger: any
+  image_picker: any
+  flutter_staggered_grid_view: any
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.2
-  http: ^1.1.0
-  camera: ^0.10.5+9
-  image_picker: ^1.0.8
-  path_provider: ^2.0.12
-  vibration: ^1.7.3
-
+  cupertino_icons: ^1.0.8
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -51,7 +50,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.0
+  flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -68,42 +67,17 @@ flutter:
     - family: Chewy
       fonts:
         - asset: assets/fonts/Chewy/Chewy-Regular.ttf
+    - family: VarelaRound
+      fonts:
         - asset: assets/fonts/VarelaRound/VarelaRound-Regular.ttf
 
   assets:
-    - assets/logo/back_arrow.png
-    - assets/logo/browse_inventory.png
-    - assets/logo/browse_recipes.png
-    - assets/logo/cookaiga_logo_four.png
-    - assets/logo/cookaiga_logo_one.png
-    - assets/logo/cookaiga_logo_three.png
-    - assets/logo/cookaiga_logo_two.png
-    - assets/logo/cooking_alone.png
-    - assets/logo/cooking_with_parent.png
-    - assets/logo/hello_my_community.png
-    - assets/logo/instructions_child.png
-    - assets/logo/instructions_everyone.png
-    - assets/logo/instructions_parent.png
-    - assets/logo/lets_cook_complete.png
-    - assets/logo/lets_cook.png
-    - assets/logo/menu_achievements.png
-    - assets/logo/menu_button.png
-    - assets/logo/menu_profile.png
-    - assets/logo/menu_settings.png
-    - assets/logo/motivational_check_one.png
-    - assets/logo/motivational_check_three.png
-    - assets/logo/motivational_check_two.png
-    - assets/logo/reward_coin.png
-    - assets/logo/scan_grocery.png
-    - assets/logo/scan_ingredients.png
-    - assets/logo/splashscreen_five.png
-    - assets/logo/splashscreen_four.png
-    - assets/logo/splashscreen_one.png
-    - assets/logo/splashscreen_six.png
-    - assets/logo/splashscreen_three.png
-    - assets/logo/splashscreen_two.png
-    - assets/logo/view_my_kitchen.png
+    - assets/buttons/
     - assets/posts/
+    - assets/ingredients/
+    - assets/audio/
+    - assets/background/
+    - assets/cooking_icons/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -111,10 +85,10 @@ flutter:
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/assets-and-images/#resolution-aware
+  # https://flutter.dev/to/resolution-aware-images
 
   # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/assets-and-images/#from-packages
+  # https://flutter.dev/to/asset-from-package
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
@@ -134,4 +108,4 @@ flutter:
   #         weight: 700
   #
   # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/custom-fonts/#from-packages
+  # see https://flutter.dev/to/font-from-package
