@@ -244,27 +244,29 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
     if (widget.isCookingAlone) {
       // Default color for "Cooking Alone"
       backgroundColor = const Color(0xFFFCD4E4); // Change this to your preferred default color
-      imagePath = 'cookingalone_logo.png'; // Use the default image
+      imagePath = 'cooking_alone.png'; // Use the default image
     } else {
       // Determine background color and image based on the category
       switch (category) {
         case "parent":
           backgroundColor = const Color(0xFFA48EA1); // Purple
-          imagePath = 'instructions_parent.png';
+          imagePath = 'cooking_adult.png';
           break;
         case "child":
           backgroundColor = const Color(0xFFEDCF9E); // Yellow
-          imagePath = 'instructions_child.png';
+          imagePath = 'cooking_child.png';
           break;
         case "everyone":
           backgroundColor = const Color(0xFFAED8C0); // Green
-          imagePath = 'instructions_everyone.png';
+          imagePath = 'cooking_adult.png';
           break;
         default:
           backgroundColor = Colors.white; // Default background color
           imagePath = '';
           break;
       }
+
+      
     }
 
     return Scaffold(

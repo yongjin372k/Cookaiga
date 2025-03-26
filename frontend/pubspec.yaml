@@ -50,6 +50,7 @@ dependencies:
   audioplayers: any
   logger: any
   flutter_staggered_grid_view: any
+  url_launcher: ^6.2.4
 
 dev_dependencies:
   flutter_test:

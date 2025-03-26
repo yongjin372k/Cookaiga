@@ -56,13 +56,13 @@ class LetsCook05Content extends StatelessWidget {
                 GestureDetector(
                   onTap: () => onModeSelected(false),
                   child: canvaImage('cooking_with_parent.png',
-                      width: 150, height: 150),
+                      width: 200, height: 200),
                 ),
                 const SizedBox(height: 1),
                 GestureDetector(
                   onTap: () => onModeSelected(true),
                   child: canvaImage('cooking_alone.png',
-                      width: 150, height: 150),
+                      width: 200, height: 200),
                 ),
                 // canvaImage('browse_recipes.png', width: 150, height: 150),
                 // const SizedBox(height: 1),
