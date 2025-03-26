@@ -41,7 +41,7 @@ const TextStyle textBody = TextStyle(
 Image canvaImage(String assetName, {double width = 200, double height = 200}) {
   // For inserting images
   return Image.asset(
-    'assets/logo/$assetName',
+    'assets/buttons/$assetName',
     width: width,
     height: height,
   );
