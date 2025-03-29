@@ -69,11 +69,59 @@ class _HomePageContentState extends State<HomePageContent> {
 
   // Logout function
   Future<void> _logout() async {
+  bool confirmLogout = await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: const Color(0xFF5E92A8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        title: const Text(
+          "Are you sure you want to logout?",
+          style: TextStyle(
+            fontFamily: "Chewy",
+            fontSize: 20,
+            color: Colors.white,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+                fontFamily: "Chewy",
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              "Logout",
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFFEDCF9E),
+                fontFamily: "Chewy",
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirmLogout) {
     await _jwtService.logout();
     if (mounted) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthPage()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthPage()),
+      );
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
