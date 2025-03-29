@@ -1,6 +1,7 @@
 package com.cookaiga.demo.api.controller;
 
 import com.cookaiga.demo.models.Post;
+import com.cookaiga.demo.api.DTO.PostDTO;
 import com.cookaiga.demo.api.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,13 @@ public class PostController {
     @GetMapping
     public ResponseEntity<List<Post>> getAllPosts() {
         List<Post> posts = postService.getAllPosts();
+        return ResponseEntity.ok(posts);
+    }
+
+    // Retrieve all community posts, with Username
+    @GetMapping("/all")
+    public ResponseEntity<List<PostDTO>> getUsernamePosts() {
+        List<PostDTO> posts = postService.getUsernamePosts();
         return ResponseEntity.ok(posts);
     }
 
