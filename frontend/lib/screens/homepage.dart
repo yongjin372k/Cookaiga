@@ -171,20 +171,24 @@ class _HomePageContentState extends State<HomePageContent> {
           Positioned(
             bottom: 20,
             left: 20,
-            child: ElevatedButton(
+            child: ElevatedButton.icon(
               onPressed: _logout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              icon: const Icon(Icons.logout, size: 18, color: Colors.white),
+              label: const Text(
+                "Logout",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontFamily: 'Chewy',
+                  color: Colors.white,
+                ),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.logout, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text("Logout", style: TextStyle(fontSize: 16, color: Colors.white)),
-                ],
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF336B89),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 2,
               ),
             ),
           ),
