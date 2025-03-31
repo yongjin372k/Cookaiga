@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/main.dart';
+import 'package:frontend/screens/audio_controller.dart';
 import 'package:frontend/screens/letscook_03.dart';
 import 'package:frontend/screens/mykitchen_01.dart';
 import 'design.dart';
@@ -20,6 +21,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   // Dummy data for the inventory
   List<Map<String, dynamic>> inventory = []; // Inventory data from the backend
   final JwtService _jwtService = JwtService(); // JWT Service instance
+  bool _isEditingDialogs = false;
 
   //final String baseUrl = "$URL/api/ingredients?userID=1"; // Replace with your backend URL
 
@@ -31,6 +33,10 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
 
   // Fetch inventory data from the backend
   Future<void> fetchInventory() async {
+    if (_isEditingDialogs) {
+      print("🛑 Skipping fetchInventory: Dialogs already running.");
+      return;
+    }
     try {
 
       String? token = await _jwtService.storage.read(key: "jwt_token");
@@ -66,6 +72,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
 
         // 🔥 Step 2: Open Edit Dialog for each ingredient with missing fields
         if (ingredientsToEdit.isNotEmpty) {
+          _isEditingDialogs = true;
           Future.delayed(Duration(milliseconds: 500), () {
             _openEditDialogs(ingredientsToEdit);
           });
@@ -81,48 +88,50 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   void _openEditDialogs(List<Map<String, dynamic>> ingredientsToEdit) {
     if (ingredientsToEdit.isEmpty) return;
 
-    print("Detected ${ingredientsToEdit.length} ingredients that require editing:");
-    for (var ingredient in ingredientsToEdit) {
-      print("Needs edit: ${ingredient['item']} (Quantity: '${ingredient['quantityWithUnit']}', Expiry: '${ingredient['expiry']}')");
+    final seenNames = <String>{};
+    final uniqueToEdit = <Map<String, dynamic>>[];
+
+    for (var item in ingredientsToEdit) {
+      final name = item['item'].toLowerCase().trim();
+      if (!seenNames.contains(name)) {
+        seenNames.add(name);
+        uniqueToEdit.add(item);
+      }
     }
 
+    print("🛠️ Unique items needing edit: ${uniqueToEdit.length}");
+
     int currentIndex = 0;
-    Set<int> editedIndexes = {}; // ✅ Ensure each ingredient is edited only once
 
     void showNextDialog() {
-      if (currentIndex >= ingredientsToEdit.length) {
-        print("All required ingredient edits completed! Stopping here.");
+      if (currentIndex >= uniqueToEdit.length) {
+        print("✅ All edit dialogs completed.");
+        _isEditingDialogs = false;
+
+        // ✅ Fetch fresh data after edits complete
+        Future.delayed(Duration(milliseconds: 300), () {
+          fetchInventory();  // Re-pull inventory to reflect changes
+        });
+
         return;
       }
 
-      // ✅ Prevent reopening the same dialog
-      if (editedIndexes.contains(currentIndex)) {
-        print("Skipping duplicate dialog for: ${ingredientsToEdit[currentIndex]['item']}");
-        currentIndex++; // Move to next
-        showNextDialog(); // Proceed to next dialog
-        return;
-      }
+      final item = uniqueToEdit[currentIndex];
+      print("📝 Editing: ${item['item']} (${currentIndex + 1}/${uniqueToEdit.length})");
 
-      print("Opening edit dialog for: ${ingredientsToEdit[currentIndex]['item']} (${currentIndex + 1}/${ingredientsToEdit.length})");
-      editedIndexes.add(currentIndex); // ✅ Mark this item as edited
-
-      showEditDialog(context, ingredientsToEdit[currentIndex], onDialogClose: () {
-        print("Closing dialog for: ${ingredientsToEdit[currentIndex]['item']}");
-        currentIndex++; // Move to next item
-
-        // ✅ Prevent reopening dialogs unnecessarily
-        if (currentIndex < ingredientsToEdit.length) {
-          Future.delayed(Duration(milliseconds: 300), () {
-            showNextDialog();
-          });
-        } else {
-          print("Final dialog closed. No more ingredients to edit.");
-        }
+      // Use Future.microtask to delay and avoid double show
+      Future.microtask(() {
+        showEditDialog(context, item, onDialogClose: () {
+          currentIndex++;
+          showNextDialog();
+        });
       });
     }
 
-    showNextDialog(); // ✅ Start processing dialogs
+    showNextDialog();
   }
+
+
 
   // Add a new inventory item
   Future<void> addInventoryItem(String itemName, String quantity, String unit, String expiryDate) async {
@@ -152,6 +161,10 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
         body: jsonEncode(newItem),
       );
       if (response.statusCode == 200) {
+        print("Successfully added item:");
+        print("Item: $itemName");
+        print("Quantity: $quantity $unit");
+        print("Expiry Date: $expiryDate");
         fetchInventory(); // Refresh the list after adding
       } else {
         print("Failed to add item: ${response.statusCode}");
@@ -225,7 +238,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
 
     try {
       final response = await http.post(
-        Uri.parse('$URL/api/recipes/generate-from-database'),
+        Uri.parse('$URL2/generate-recipe-from-ingredient'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"ingredient": ingredient}),
       );
@@ -277,9 +290,6 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
       }
     }
   }
-
-
-
 
 
   /// Helper function to format quantity with singular/plural unit
@@ -463,7 +473,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
             borderRadius: BorderRadius.circular(15),
           ),
           title: const Text(
-            'Edit Item',
+            'New Item',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -571,19 +581,59 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
 
 
     return Scaffold(
-      backgroundColor: createMaterialColor(const Color(0xFF80A6A4)),
       body: Stack(
         children: [
           // Top-left Positioned Back Arrow
-          Positioned(
-            top: 10,
-            left: 10,
-            child: GestureDetector(
-              onTap: () {
-                Navigator.of(context)
-                    .push(fadeTransition(const MyKitchen01Content()));
-              },
-              child: canvaImage('back_arrow.png', width: 50, height: 50),
+          Positioned.fill(
+            child: Image.asset(
+              'assets/background/page_view_my_kitchen_01.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Back Arrow
+                RawMaterialButton(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => MyKitchen01Content()),
+                    );
+                  },
+                  fillColor: const Color(0xFF4A90A4),
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
+                  shape: const CircleBorder(),
+                  child: Image.asset(
+                    'assets/buttons/back_arrow.png',
+                    width: 40,
+                    height: 40,
+                  ),
+                ),
+
+                // Music Toggle Button
+                RawMaterialButton(
+                  onPressed: () async {
+                    await toggleMusic();
+                    setState(() {}); // Ensure UI updates when toggled
+                  },
+                  fillColor: const Color(0xFF4A90A4),
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
+                  shape: const CircleBorder(),
+                  child: Image.asset(
+                    isMusicOn ? 'assets/buttons/sound_on_white.png' : 'assets/buttons/sound_off_white.png',
+                    width: 25,
+                    height: 25,
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -591,20 +641,20 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
           Positioned(
             top: 130,
             right: 15,
-            child: GestureDetector(
-              onTap: () {
-                // Add button functionality here
+            child: RawMaterialButton(
+              onPressed: () {
                 print('Add item');
                 showAddDialog(context);
               },
-              child: Container(
+              fillColor: const Color(0xFF4A90A4),
+              constraints: const BoxConstraints.tightFor(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
-                  color: createMaterialColor(const Color(0xFFF1BFA1)),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.add, color: Colors.black),
+              ),
+              shape: const CircleBorder(),
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
               ),
             ),
           ),
@@ -616,12 +666,24 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
               children: [
                 // Browse Inventory Logo
                 Center(
-                  child: canvaImage('browse_inventory.png', width: 120, height: 120),
+                  child: canvaImage('browse_inventory.png', width: 125, height: 125),
                 ),
                 const SizedBox(height: 20),
 
                 Expanded(
-                child: ListView.builder(
+                  child: inventory.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "No ingredients available",
+                          style: TextStyle(
+                            fontSize: 23,
+                            fontFamily: 'Chewy',
+                            color: Colors.black,
+                            height: -3,
+                          ),
+                        ),
+                      )
+                : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 15.0),
                   itemCount: inventory.length,
                   itemBuilder: (context, index) {
@@ -647,13 +709,13 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                       child: Container(
                         height: 100, // Set the height of the list item
                         decoration: BoxDecoration(
-                          color: createMaterialColor(const Color(0xFFF1BFA1)),
+                          color: createMaterialColor(const Color(0xFFFFF7F0)),
                           borderRadius: BorderRadius.circular(12.0),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 5,
-                              offset: const Offset(0, 2),
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
                             ),
                           ],
                         ),
@@ -665,20 +727,26 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                               height: 70,
                               margin: const EdgeInsets.only(left: 15),
                               decoration: BoxDecoration(
-                                color: createMaterialColor(const Color(0xFFE0E0E0)),
+                                color: createMaterialColor(const Color(0xFFFFF7F0)),
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
-                                child: Text(
-                                  (item['item'] != null && item['item'].isNotEmpty)
-                                      ? item['item'][0].toUpperCase() // Initial Character
-                                      : "?", // Fallback to "?" if item name is null or empty
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                    fontFamily: 'Chewy',
-                                  ),
+                                child: Image.asset(
+                                  'assets/cooking_icons/${item['item'].toLowerCase().replaceAll(' ', '_')}.png',
+                                  width: 40,
+                                  height: 40,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    // Fallback if image doesn't exist
+                                    return Text(
+                                      item['item']?.isNotEmpty == true ? item['item'][0].toUpperCase() : "?",
+                                      style: const TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                        fontFamily: 'Chewy',
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
@@ -765,40 +833,34 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                             PopupMenuButton<String>(
                               onSelected: (value) {
                                 if (value == 'view') {
-                                  print('View action selected for ${item['item']}');
                                   showViewDialog(context, item);
                                 } else if (value == 'edit') {
-                                  print('Edit action selected for ${item['item']}');
                                   showEditDialog(context, item);
                                 }
                               },
                               icon: const Icon(
-                                Icons.more_vert, // Three-dot icon
-                                color: Colors.black, // Icon color
+                                Icons.more_vert,
+                                color: Colors.black,
                               ),
-                              color: createMaterialColor(const Color(0xFFF9E0D2)), // Popup background color
-                              elevation: 6, // Add shadow for better visibility
+                              color: const Color(0xFFFFF0E6), // Soft peach background
+                              elevation: 8,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15.0), // Rounded corners
+                                borderRadius: BorderRadius.circular(16.0),
                               ),
                               itemBuilder: (BuildContext context) => [
                                 PopupMenuItem(
                                   value: 'view',
                                   child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.visibility,
-                                        color: Color(0xFF80A6A4), // Custom icon color
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 10),
+                                    children: const [
+                                      Icon(Icons.visibility, color: Color(0xFFDECBB7), size: 20), // Soft beige icon
+                                      SizedBox(width: 10),
                                       Text(
                                         'View',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
+                                          fontFamily: 'Chewy',
                                           color: Colors.black,
-                                          fontFamily: 'Chewy', // Match the app's font
                                         ),
                                       ),
                                     ],
@@ -807,20 +869,16 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                 PopupMenuItem(
                                   value: 'edit',
                                   child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.edit,
-                                        color: Color(0xFF80A6A4), // Custom icon color
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 10),
+                                    children: const [
+                                      Icon(Icons.edit, color: Color(0xFFDECBB7), size: 20), // Muted mint icon
+                                      SizedBox(width: 10),
                                       Text(
                                         'Edit',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
+                                          fontFamily: 'Chewy',
                                           color: Colors.black,
-                                          fontFamily: 'Chewy', // Match the app's font
                                         ),
                                       ),
                                     ],

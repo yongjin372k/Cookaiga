@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/main.dart';
+import 'package:frontend/screens/audio_controller.dart';
 import 'package:frontend/screens/checklist.dart';
+import 'package:frontend/screens/mykitchen_01.dart';
 import 'design.dart';
 import 'letscook_01.dart';
 import 'transition.dart';
@@ -134,46 +136,88 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
       backgroundColor: createMaterialColor(const Color(0xFF80A6A4)),
       body: Stack(
         children: [
-          // Back Button Positioned at Top-Left
-          Positioned(
-            top: 10, // Adjust vertical position
-            left: 10, // Adjust left margin
-            right: 10, // Adjust right margin
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start, // Align to left
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context)
-                        .push(fadeTransition(const LetsCook01Content()));
-                  },
-                  child: canvaImage('back_arrow.png', width: 50, height: 50),
-                ),
-              ],
+          // Background and Top Row
+          Positioned.fill(
+            child: Image.asset(
+              'assets/background/page_view_my_kitchen_01.png',
+              fit: BoxFit.cover,
             ),
           ),
-
-          // Main Content
           SafeArea(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Back Button
+                      RawMaterialButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => const LetsCook01Content()),
+                          );
+                        },
+                        fillColor: const Color(0xFF4A90A4),
+                        constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                        shape: const CircleBorder(),
+                        child: Image.asset(
+                          'assets/buttons/back_arrow.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                      ),
+            
+                      // Sound toggle
+                      RawMaterialButton(
+                        onPressed: () async {
+                          await toggleMusic();
+                          setState(() {}); // Ensure UI updates
+                        },
+                        fillColor: const Color(0xFF4A90A4),
+                        constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                        shape: const CircleBorder(),
+                        child: Image.asset(
+                          isMusicOn
+                              ? 'assets/buttons/sound_on_white.png'
+                              : 'assets/buttons/sound_off_white.png',
+                          width: 25,
+                          height: 25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // const SizedBox(height: 20),
+                
+                // Main Content
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 60), // Space after back button
-                      Center(
-                        child: canvaImage('browse_recipes.png',
-                            width: 120, height: 120),
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: dynamicVerticalPadding),
+                        child: RawMaterialButton(
+                          onPressed: () {
+                          },
+                          fillColor: const Color(0xFF80A6A4),
+                          constraints: BoxConstraints.tightFor(
+                            width: 125,
+                            height: 125,
+                          ),
+                          shape: const CircleBorder(),
+                          child: Image.asset(
+                            'assets/buttons/browse_recipes.png',
+                            width: 125,
+                            height: 125,
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 20),
                       Expanded(
                         child: isLoading
                             ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
+                                child: CircularProgressIndicator(color: Colors.white),
                               )
                             : recipes.isEmpty
                                 ? const Center(
@@ -184,28 +228,29 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
                                     ),
                                   )
                                 : ListView.builder(
-                                    padding:
-                                        const EdgeInsets.symmetric(horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
                                     itemCount: recipes.length,
                                     itemBuilder: (context, index) {
                                       final recipe = recipes[index];
                                       return GestureDetector(
                                         onTap: () => fetchRecipeOverview(recipe),
                                         child: Container(
-                                          margin:
-                                              const EdgeInsets.only(bottom: 10),
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 15, vertical: 30),
+                                          margin: const EdgeInsets.only(bottom: 10),
+                                          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 30),
                                           decoration: BoxDecoration(
-                                            color: createMaterialColor(
-                                                const Color(0xFF336B89)),
-                                            borderRadius:
-                                                BorderRadius.circular(10),
+                                            color: createMaterialColor(const Color(0xFFFFF7F0)),
+                                            borderRadius: BorderRadius.circular(10),
                                           ),
                                           child: Center(
                                             child: Text(
                                               recipe,
-                                              style: textBody,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                // fontWeight: FontWeight.bold,
+                                                height: 1,
+                                                color: Colors.black,
+                                                fontFamily: 'Chewy',
+                                              ),
                                               overflow: TextOverflow.visible,
                                               softWrap: true,
                                               textAlign: TextAlign.center,
@@ -216,26 +261,30 @@ class _LetsCook03ContentState extends State<LetsCook03Content> {
                                     },
                                   ),
                       ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      fetchRecipes();
-                    },
-                    child: const Text(
-                      "Generate more recipes",
-                      style: textBody,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      primary: const Color(0xFF336A84),
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: ElevatedButton(
+                          onPressed: fetchRecipes,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDECBB7),
+                            minimumSize: const Size(double.infinity, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: const Text(
+                            "Generate more recipes",
+                            style: TextStyle(
+                              fontSize: 16,
+                              // fontWeight: FontWeight.bold,
+                              height: 1,
+                              color: Colors.black,
+                              fontFamily: 'Chewy',
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],

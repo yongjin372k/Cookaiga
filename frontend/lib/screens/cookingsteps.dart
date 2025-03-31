@@ -11,6 +11,7 @@ class CookingStepsScreen extends StatefulWidget {
   final List<Map<String, String>> steps;
   final bool isCookingAlone; // New parameter to differentiate modes
   final String recipeName; // Add recipeName parameter
+  
 
   const CookingStepsScreen({Key? key, required this.steps, required this.isCookingAlone, required this.recipeName}) : super(key: key);
 
@@ -26,6 +27,8 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
   late ConfettiController _confettiController;
   late stt.SpeechToText _speech;
   bool _isListening = false;
+  late String instructionText;
+  late String selectedPrompt;
   final List<String> encouragements = [
     "Great job! Keep going!",
     "You're doing amazing!",
@@ -35,15 +38,59 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
   ];
 
   final Random _random = Random();
+
+  final List<String> cookingPrompts = [
+    "Take your time, no rush! When you're ready, \nclick Continue.",
+    "No pressure—go at your \nown pace!",
+    "Ready when you are! \nClick continue to move on.",
+    "Enjoy the moment. \nContinue when you're set.",
+    "Don't worry, you’re doing great. \nHit continue when ready!",
+    "Need a breather? \nCome back when you're ready.",
+    "Feel free to explore. \nTap continue when you're done.",
+    "You're in control! \nContinue when it feels right.",
+    "Whenever you're ready, \nlet's move forward.",
+    "Pause if you need to. \nContinue when you're comfortable.",
+  ];
+
+  String? getStepImage(String description) {
+    final Map<String, String> imageMap = {
+      "chop": "assets/cooking_icons/chopping_board.png",
+      "slice": "assets/cooking_icons/chopping_board.png",
+      "cut": "assets/cooking_icons/chopping_board.png",
+      "add sauce": "assets/cooking_icons/add_sauce.png",
+      "pour": "assets/cooking_icons/add_sauce.png",
+      "mix": "assets/cooking_icons/mixing_bowl.png",
+      "stir-fry": "assets/cooking_icons/frying_pan.png",
+      "stir": "assets/cooking_icons/mixing_bowl.png",
+      "fry": "assets/cooking_icons/frying_pan.png",
+      "saute": "assets/cooking_icons/frying_pan.png",
+      "heat": "assets/cooking_icons/heat.png",
+      "rice": "assets/cooking_icons/rice.png",
+    };
+
+    description = description.toLowerCase();
+    for (final key in imageMap.keys) {
+      if (description.contains(key)) {
+        return imageMap[key];
+      }
+    }
+    return null;
+  }
+
   
 
   @override
   void initState() {
     super.initState();
+
+    selectedPrompt = cookingPrompts[Random().nextInt(cookingPrompts.length)];
+
+    
     _initTts();
     _startTimer(); // Start the timer when the widget is initialized
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
     _speech = stt.SpeechToText();
+    
 
     // Speak Step 1 when the screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -169,9 +216,12 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
       _showCheckInDialog();
     });
   }
+  
 
   // Show the check-in dialog
   void _showCheckInDialog() {
+    selectedPrompt = cookingPrompts[_random.nextInt(cookingPrompts.length)];
+    
     showDialog(
       context: context,
       builder: (context) {
@@ -188,8 +238,8 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
             ),
             textAlign: TextAlign.center,
           ),
-          content: const Text(
-            'Take your time, no rush! When you\'re ready, click Continue.',
+          content: Text(
+            selectedPrompt,
             style: TextStyle(
               fontSize: 16,
               color: Colors.white,
@@ -236,7 +286,7 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
     final categoryRegex = RegExp(r'\((.*?)\)');
     final match = categoryRegex.firstMatch(step['step'] ?? '');
     final category = match != null ? match.group(1)!.toLowerCase() : "unknown";
-    
+    final stepImage = getStepImage(cleanedContent);
 
     String imagePath;
     Color backgroundColor;
@@ -245,28 +295,30 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
       // Default color for "Cooking Alone"
       backgroundColor = const Color(0xFFFCD4E4); // Change this to your preferred default color
       imagePath = 'cooking_alone.png'; // Use the default image
+      instructionText = "Your Turn!";
     } else {
       // Determine background color and image based on the category
       switch (category) {
         case "parent":
           backgroundColor = const Color(0xFFA48EA1); // Purple
           imagePath = 'cooking_adult.png';
+          instructionText = "Adult's Turn!";
           break;
         case "child":
           backgroundColor = const Color(0xFFEDCF9E); // Yellow
           imagePath = 'cooking_child.png';
+          instructionText = "Child's Turn!";
           break;
         case "everyone":
           backgroundColor = const Color(0xFFAED8C0); // Green
-          imagePath = 'cooking_adult.png';
+          imagePath = 'cooking_together.png';
+          instructionText = "Everyone Together!";
           break;
         default:
           backgroundColor = Colors.white; // Default background color
           imagePath = '';
           break;
-      }
-
-      
+      } 
     }
 
     return Scaffold(
@@ -287,13 +339,27 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                 gravity: 0.1, // Slow falling effect
                 colors: [Colors.green, Colors.blue, Colors.pink, Colors.orange],
               ),
+              const SizedBox(height: 25),
               if (imagePath.isNotEmpty)
-                canvaImage(
-                  imagePath,
-                  width: 200,
-                  height: 200,
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    canvaImage(
+                      imagePath,
+                      width: 125,
+                      height: 125,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      instructionText,
+                      style: textHeader, // use your existing text style
+                    ),
+                  ],
                 ),
-              const SizedBox(height: 1),
+              ),
+              const SizedBox(height: 20),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -315,6 +381,16 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
+                                  if (stepImage != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 10),
+                                    child: Image.asset(
+                                      stepImage,
+                                      width: 100,
+                                      height: 100,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
                                   // Cooking Process Text (Step Content First)
                                   Text(
                                     cleanedContent,
@@ -326,19 +402,6 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
-                                  const SizedBox(height: 40), // Add space between content and motivation
-                                  // Motivational Text
-                                  if (motivation.isNotEmpty)
-                                    Text(
-                                      motivation,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black,
-                                        height: 1.5,
-                                        fontFamily: 'Chewy',
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
                                 ],
                               ),
                             ),

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/audio_controller.dart';
 import 'package:frontend/screens/camera_screen_inventory.dart';
 import 'package:frontend/screens/mykitchen_03.dart';
 import 'design.dart';
@@ -58,7 +59,7 @@ class MyKitchen01Content extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 20.0),
+                const SizedBox(height: 40.0),
 
                 // -- START of headline. --
                 Padding(
@@ -71,37 +72,58 @@ class MyKitchen01Content extends StatelessWidget {
                   ),
                 ),
                 // -- END of headline. --
-
+                const SizedBox(height: 15.0),
                 // Center Main Content
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      "Welcome to \nyour kitchen!",
-                      style: textHeader,
-                      textAlign: TextAlign.center,
+                // -- START of action buttons inside the body. --
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: dynamicVerticalPadding),
+                  child: RawMaterialButton(
+                    onPressed: () {
+                      if (isMusicOn) {
+                        toggleMusic(); // Stop music before navigating
+                      }
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => CameraPageInventory()),
+                      );
+                    },
+                    fillColor: const Color(0xFF80A6A4),
+                    constraints: BoxConstraints.tightFor(
+                      width: 150,
+                      height: 150,
                     ),
-                    const SizedBox(height: 20),
-
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(fadeTransition(CameraPageInventory()));
-                      },
-                      child: canvaImage('scan_grocery.png', width: 150, height: 150),
+                    shape: const CircleBorder(),
+                    child: Image.asset(
+                      'assets/buttons/scan_grocery.png',
+                      width: 150,
+                      height: 150,
                     ),
-
-                    const SizedBox(height: 10),
-
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(fadeTransition(MyKitchen03Content()));
-                      },
-                      child: canvaImage('browse_inventory.png', width: 150, height: 150),
-                    ),
-                  ],
+                  ),
                 ),
+                const SizedBox(height: 10.0),
 
-                const Spacer(),
+                // Browse Recipes Button.
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: dynamicVerticalPadding),
+                  child: RawMaterialButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => MyKitchen03Content()),
+                      );
+                    },
+                    fillColor: const Color(0xFF80A6A4),
+                    constraints: BoxConstraints.tightFor(
+                      width: 150,
+                      height: 150,
+                    ),
+                    shape: const CircleBorder(),
+                    child: Image.asset(
+                      'assets/buttons/browse_inventory.png',
+                      width: 150,
+                      height: 150,
+                    ),
+                  ),
+                ),
+                // -- END of action buttons. --
               ],
             ),
           ),
@@ -121,11 +143,10 @@ class RandomTagline extends StatefulWidget {
 
 class _RandomTaglineState extends State<RandomTagline> {
   final List<String> taglines = [
-    "Welcome to your kitchen!",
-    "Your kitchen, your rules.",
-    "Step into your culinary space!",
+    "Welcome to \nyour kitchen!",
+    "Step into your \nculinary space!",
     "Your kitchen is waiting! \nWhat's on the agenda today?",
-    "Where delicious ideas come to life!",
+    "Where delicious ideas \ncome to life!",
     "Home sweet kitchen! \nReady to create something amazing?",
     "Cooking starts here! \nWhat's the first step?",
     "Your personal kitchen kingdom awaits!",
