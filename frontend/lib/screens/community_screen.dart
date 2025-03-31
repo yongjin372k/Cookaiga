@@ -16,7 +16,8 @@ class Post {
   int likes;                  // Not in Post
   int comments;
   final String username;
-  final String timestamp;     // Not in Post
+  final String timestamp;     
+  bool hasLiked;              // Not in Post
 
   Post({
     required this.postID,
@@ -26,7 +27,8 @@ class Post {
     this.likes = 0,           // Not in Post
     this.comments = 0,
     required this.username,
-    required this.timestamp,  // Not in Post
+    required this.timestamp,  
+    this.hasLiked = false,    // Not in Post
   });
 
   // Factory method to create a Post from JSON
@@ -39,7 +41,8 @@ class Post {
       likes: json['likes'] ?? 0,                    // Not in Post
       comments: json['comments'] ?? 0,
       username: json['username'] ?? 'User',
-      timestamp: json['timestamp'] ?? 'Just now',   // Not in Post
+      timestamp: json['timestamp'] ?? 'Just now',   
+      hasLiked: json['hasLiked'] ?? false,          // Not in Post
     );
   }
 }
@@ -63,7 +66,7 @@ class _CommunityPageState extends State<CommunityPage> {
 
   // Fetch posts from the backend
   Future<void> _fetchPosts() async {
-    final String apiUrl = "$URL/api/posts"; // Backend endpoint
+    final String apiUrl = "$URL/api/posts/all"; // Backend endpoint
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -160,7 +163,7 @@ class _CommunityPageState extends State<CommunityPage> {
                   backgroundColor: Colors.blueGrey,
                   child: Text(
                     post.username[0],
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white, fontFamily: "Chewy",),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -215,7 +218,8 @@ class _CommunityPageState extends State<CommunityPage> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.favorite_border, color: Colors.red),
+                      icon: Icon(
+                        post.hasLiked ? Icons.favorite : Icons.favorite_border, color: Colors.red),
                       onPressed: () => _handleLike(post),
                     ),
                     Text(

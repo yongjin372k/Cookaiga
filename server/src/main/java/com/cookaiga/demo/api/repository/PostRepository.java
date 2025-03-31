@@ -1,5 +1,6 @@
 package com.cookaiga.demo.api.repository;
 
+import com.cookaiga.demo.api.DTO.PostDTO;
 import com.cookaiga.demo.models.Post;
 
 import java.util.List;
@@ -29,6 +30,13 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     // Retrieve all posts ordered by postDate in descending order
     @Query(value = "SELECT * FROM POST ORDER BY postDate DESC", nativeQuery = true)
     List<Post> findAllPosts();
+
+    @Query(value = "SELECT p.postID, p.userID, p.imagePath, p.caption, p.postDate, u.username " +
+               "FROM POST p " +
+               "INNER JOIN USER u ON p.userID = u.userID " +
+               "ORDER BY p.postDate DESC", nativeQuery = true)
+               List<Object[]> findAllPostsRaw(); // Return raw data
+
 
     // Retrieve a post by its ID
     @Query(value = "SELECT * FROM POST WHERE postID = :postID", nativeQuery = true)
