@@ -69,11 +69,58 @@ class _HomePageContentState extends State<HomePageContent> {
 
   // Logout function
   Future<void> _logout() async {
+  bool confirmLogout = await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: const Color(0xFF5E92A8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        title: const Text(
+          "Are you sure you want to logout?",
+          style: TextStyle(
+            fontFamily: "Chewy",
+            fontSize: 20,
+            color: Colors.white,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+                fontFamily: "Chewy",
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              "Logout",
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFFEDCF9E),
+                fontFamily: "Chewy",
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirmLogout) {
     await _jwtService.logout();
     if (mounted) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthPage()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthPage()),
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -171,20 +218,24 @@ class _HomePageContentState extends State<HomePageContent> {
           Positioned(
             bottom: 20,
             left: 20,
-            child: ElevatedButton(
+            child: ElevatedButton.icon(
               onPressed: _logout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              icon: const Icon(Icons.logout, size: 18, color: Colors.white),
+              label: const Text(
+                "Logout",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontFamily: 'Chewy',
+                  color: Colors.white,
+                ),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.logout, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text("Logout", style: TextStyle(fontSize: 16, color: Colors.white)),
-                ],
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF336B89),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 2,
               ),
             ),
           ),
