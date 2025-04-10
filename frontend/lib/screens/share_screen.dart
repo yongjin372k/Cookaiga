@@ -36,6 +36,20 @@ class _SharePageState extends State<SharePage> {
   }
 
   // Function to upload the image with JWT token authentication
+  Future<void> _captureImage() async {
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.camera);
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      print("Error capturing image: $e");
+    }
+  }
+
+  // Upload image
   Future<void> _uploadImage() async {
     if (_selectedImage == null) {
       _showMessage("Please select an image first.");
@@ -45,8 +59,8 @@ class _SharePageState extends State<SharePage> {
     setState(() => _isUploading = true);
 
     try {
-      final int? userID = await _jwtService.getUserID(); // Fetch logged-in user ID
-      final String? token = await _jwtService.storage.read(key: "jwt_token"); // Get JWT token
+      final int? userID = await _jwtService.getUserID();                        // Fetch logged-in user ID
+      final String? token = await _jwtService.storage.read(key: "jwt_token");   // Get JWT token
 
       if (userID == null || token == null) {
         _showMessage("Authentication failed. Please log in again.");
@@ -55,7 +69,7 @@ class _SharePageState extends State<SharePage> {
 
       final String apiUrl = "$URL/api/posts/upload";
       var request = http.MultipartRequest('POST', Uri.parse(apiUrl))
-        ..headers['Authorization'] = "Bearer $token" // Send JWT token in the headers
+        ..headers['Authorization'] = "Bearer $token"                            // Send JWT token in the headers
         ..fields['userID'] = userID.toString()
         ..files.add(await http.MultipartFile.fromPath('imagePath', _selectedImage!.path));
 
@@ -75,7 +89,6 @@ class _SharePageState extends State<SharePage> {
     }
   }
 
-  // Show SnackBar Message
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message, textAlign: TextAlign.center)),
@@ -110,7 +123,7 @@ class _SharePageState extends State<SharePage> {
           ),
           const SizedBox(height: 16),
 
-          // Image Container
+          // Image container
           GestureDetector(
             onTap: _pickImage,
             child: Container(
@@ -140,9 +153,32 @@ class _SharePageState extends State<SharePage> {
                     ),
             ),
           ),
+          const SizedBox(height: 10),
+
+          // Take a Photo button
+          TextButton.icon(
+            onPressed: _captureImage,
+            icon: const Icon(Icons.camera_alt, color: Colors.white),
+            label: const Text(
+              'Take a Photo',
+              style: TextStyle(
+                fontSize: 16,
+                fontFamily: 'Chewy',
+                color: Colors.white,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFF336A84),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+            ),
+          ),
           const SizedBox(height: 16),
 
-          // Disclaimer Text
+          // Disclaimer Section
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
@@ -157,7 +193,7 @@ class _SharePageState extends State<SharePage> {
           ),
           const SizedBox(height: 16),
 
-          // Share Photo Button
+          // Share button
           ElevatedButton(
             onPressed: _isUploading ? null : _uploadImage,
             style: ElevatedButton.styleFrom(
