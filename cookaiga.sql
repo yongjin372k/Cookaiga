@@ -99,20 +99,38 @@ SELECT * FROM ingredients;
 SELECT item, quantity_with_unit, expiry FROM ingredients WHERE quantity_with_unit > 0;
 INSERT INTO ingredients (item, quantity_with_unit, expiry, userID)
 VALUES
-    ('Chicken', '2 pieces', '2025-01-20', '1'),
-    ('Milk', '2 liters', '2025-01-22', '1'),
-    ('Cheese', '1 gram', '2025-01-25', '1'),
-    ('Butter', '3 grams', '2025-01-18', '1'),
-    ('Yogurt', '4 cups', '2025-01-28', '1');
+    -- Meats & Proteins
+    ('Chicken', '2 pieces', '2025-04-01', '1'),
+    ('Beef', '500 grams', '2025-04-03', '1'),
+    ('Salmon Fillet', '2 pieces', '2025-04-02', '1'),
+    ('Tofu', '300 grams', '2025-04-05', '1'),
+    ('Egg', '12 pieces', '2025-04-10', '1'),
+
+    -- Dairy
+    ('Milk', '1 liter', '2025-04-08', '1'),
+    ('Cheese', '200 grams', '2025-04-12', '1'),
+    ('Yogurt', '2 cups', '2025-04-06', '1'),
+    ('Butter', '250 grams', '2025-06-01', '1'),
+
+    -- Vegetables
+    ('Broccoli', '1 head', '2025-04-03', '1'),
+    ('Carrot', '3 pieces', '2025-04-07', '1'),
+    ('Spinach', '150 grams', '2025-04-04', '1'),
+    ('Onion', '2 pieces', '2025-04-10', '1'),
+    ('Tomato', '3 pieces', '2025-04-05', '1'),
+    ('Garlic', '5 cloves', '2025-04-09', '1'),
+
+    -- Grains / Pantry
+    ('Rice', '1 kg', '2026-01-01', '1'),
+    ('Brown Rice', '1 kg', '2026-02-15', '1'),
+    ('Noodle', '500 grams', '2026-03-01', '1'),
+    ('Flour', '1 kg', '2026-06-01', '1'),
+    ('Sugar', '500 grams', '2026-12-31', '1'),
+
+    -- Condiments / Misc
+    ('Soy Sauce', '250 ml', '2026-08-01', '1'),
+    ('Olive Oil', '500 ml', '2026-11-01', '1'),
+    ('Salt', '200 grams', '2027-01-01', '1'),
+    ('Black Pepper', '100 grams', '2027-01-01', '1');
 
 
-
--- IMAGE TABLE NOT USED--
-drop table image;
-CREATE TABLE IF NOT EXISTS IMAGE (
-	imageID INT PRIMARY KEY AUTO_INCREMENT,
-    postID INT NOT NULL,
-    imagePath VARCHAR(255) NOT NULL,
-    FOREIGN KEY (postID) REFERENCES POST(postID)
-);
-SELECT * FROM IMAGE;
