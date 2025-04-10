@@ -35,7 +35,7 @@ class _SharePageState extends State<SharePage> {
     }
   }
 
-  // Function to upload the image with JWT token authentication
+  // Function to open Camera mode
   Future<void> _captureImage() async {
     try {
       final pickedFile = await _picker.pickImage(source: ImageSource.camera);
