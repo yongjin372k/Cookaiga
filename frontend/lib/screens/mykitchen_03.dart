@@ -737,14 +737,20 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                   height: 40,
                                   errorBuilder: (context, error, stackTrace) {
                                     // Fallback if image doesn't exist
-                                    return Text(
-                                      item['item']?.isNotEmpty == true ? item['item'][0].toUpperCase() : "?",
-                                      style: const TextStyle(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                        fontFamily: 'Chewy',
-                                      ),
+                                    // return Text(
+                                    //   item['item']?.isNotEmpty == true ? item['item'][0].toUpperCase() : "?",
+                                    //   style: const TextStyle(
+                                    //     fontSize: 28,
+                                    //     fontWeight: FontWeight.bold,
+                                    //     color: Colors.black,
+                                    //     fontFamily: 'Chewy',
+                                    //   ),
+                                    // );
+                                    // ✅ Show a default placeholder image if the asset doesn't exist
+                                    return Image.asset(
+                                      'assets/cooking_icons/ingredient_icon.png',
+                                      width: 40,
+                                      height: 40,
                                     );
                                   },
                                 ),

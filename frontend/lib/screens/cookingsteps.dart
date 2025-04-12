@@ -117,25 +117,63 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
     bool available = await _speech.initialize(
       onStatus: (status) {
         print('🎙 Speech status: $status');
-        setState(() {
-          _isListening = status == "listening"; // Update UI when listening
-        });
+
+        if (status == 'notListening' && _isListening) {
+          print("STT stopped unexpectedly (possibly timeout or UI interference).");
+          setState(() => _isListening = false);
+        }
+
+        if (status == 'done') {
+          print("STT session ended.");
+          setState(() => _isListening = false);
+        }
       },
-      onError: (error) => print('Speech error: $error'),
+      onError: (error) {
+        print('Speech error: $error');
+        setState(() => _isListening = false);
+      },
     );
 
     if (available) {
       setState(() => _isListening = true);
+
+      const int maxListenSeconds = 40;
+      int secondsLeft = maxListenSeconds;
+
+      // Live countdown for STT session
+      Timer.periodic(Duration(seconds: 1), (timer) {
+        if (!_isListening || secondsLeft <= 0) {
+          timer.cancel();
+        } else {
+          print("Listening... $secondsLeft seconds left");
+          secondsLeft--;
+        }
+      });
+
+      bool commandHandled = false;
+
       _speech.listen(
+        listenMode: stt.ListenMode.confirmation,
+        listenFor: Duration(seconds: maxListenSeconds),
+        pauseFor: Duration(seconds: 10),
+        partialResults: true,
         onResult: (result) {
-          String command = result.recognizedWords.toLowerCase();
+          String command = result.recognizedWords.toLowerCase().trim();
           print("User said: $command");
 
-          if (command.contains("next step")) {
-            print("Recognized 'Next Step' command!");
-            _speech.stop(); // Stop listening
-            setState(() => _isListening = false); // Update UI
+          if (!result.finalResult) {
+            print("Ignoring interim result...");
+            return;
+          }
+
+          if (command.contains("next step") && !commandHandled) {
+            print("Recognized 'Next Step'!");
+            commandHandled = true;
+            _speech.stop(); // Stop recognition session
+            setState(() => _isListening = false);
             _goToNextStep();
+          } else if (!commandHandled) {
+            print("Unknown command: $command");
           }
         },
       );
@@ -144,6 +182,8 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
       setState(() => _isListening = false);
     }
   }
+
+
 
   void _goToNextStep() {
     if (currentStep < widget.steps.length - 1) {
@@ -157,10 +197,11 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
         _speakEncouragementAndStep(widget.steps[currentStep]['step'] ?? '');
       });
 
-      _startListening(); // Start voice recognition for "Next Step"
+      // _startListening();
+       // Start voice recognition for "Next Step"
     } else {
       setState(() {
-        _confettiController.play(); // 🎉 Trigger Confetti
+        _confettiController.play(); // Trigger Confetti
         _timer?.cancel();
       });
 
@@ -190,29 +231,36 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
         isSpeaking = true;
       });
 
-      // Skip encouragement for the first step
+      // Step 1: Speak encouragement if it's not the first step
       if (currentStep > 0) {
         String encouragement = encouragements[_random.nextInt(encouragements.length)];
+        print("🗣️ TTS encouragement: $encouragement"); // 👈 print here
         await flutterTts.speak(encouragement);
-        await Future.delayed(Duration(seconds: 3)); // Ensure a small delay before continuing
+        await flutterTts.awaitSpeakCompletion(true); // 👂 Wait until encouragement finishes
+        await Future.delayed(Duration(milliseconds: 500)); // Optional small delay
       }
 
-      // Speak the step after encouragement
-      await flutterTts.speak(text);
 
-      // Set speaking state to false after speech is done
+      // Step 2: Speak the step content
+      print("🗣️ TTS instruction: $text"); // 👈 print here
+      await flutterTts.speak(text);
+      await flutterTts.awaitSpeakCompletion(true); // 👂 Wait until step instruction finishes
+
+      // ✅ Step 3: Only start listening after all speaking is done
       setState(() {
         isSpeaking = false;
       });
+      _startListening();
     }
   }
 
 
 
 
+
   // Start a timer to show the check-in dialog if the user takes too long
   void _startTimer() {
-    _timer = Timer(const Duration(seconds: 10), () {
+    _timer = Timer(const Duration(seconds: 20), () {
       _showCheckInDialog();
     });
   }
@@ -221,9 +269,13 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
   // Show the check-in dialog
   void _showCheckInDialog() {
     selectedPrompt = cookingPrompts[_random.nextInt(cookingPrompts.length)];
-    
+
+    // Start STT for "continue" here
+    _startListeningForCheckIn();
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -240,7 +292,7 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
           ),
           content: Text(
             selectedPrompt,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               color: Colors.white,
               fontFamily: 'Chewy',
@@ -251,14 +303,17 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
             Center(
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close the dialog
-                  _startTimer(); // Restart the timer for the next step
+                  Navigator.pop(context);
+                  _speech.stop(); // Stop any previous STT
+
+                  Future.delayed(Duration(milliseconds: 200), () {
+                    _startListening();  // 🧠 Resume main STT
+                    _startTimer();
+                  });
                 },
                 style: ElevatedButton.styleFrom(
                   primary: const Color(0xFF336A84),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
                 child: const Text(
                   'Continue',
@@ -276,6 +331,46 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
       },
     );
   }
+
+  void _startListeningForCheckIn() async {
+    bool available = await _speech.initialize(
+      onStatus: (status) {
+        print('🎙 Check-in STT status: $status');
+      },
+      onError: (error) {
+        print('❌ Check-in STT error: $error');
+      },
+    );
+
+    if (available) {
+      _speech.listen(
+        listenMode: stt.ListenMode.confirmation,
+        listenFor: Duration(seconds: 20),
+        pauseFor: Duration(seconds: 10),
+        partialResults: false,
+        onResult: (result) {
+          final command = result.recognizedWords.toLowerCase();
+          print("👂 Heard during check-in: $command");
+
+          if (command.contains("continue") || command.contains("yes") || command.contains("go on")) {
+            print("✅ Voice command matched: closing check-in");
+
+            Navigator.pop(context);     // ✅ Close dialog
+            _speech.stop();             // 🛑 Stops current session
+
+            Future.delayed(Duration(milliseconds: 500), () {
+              _startListening();        // 🔁 Resume STT for “next step”
+              _startTimer();            // 🔄 Resume idle timer
+            });
+          }
+        },
+      );
+
+      print("🎤 Listening for check-in confirmation...");
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {

@@ -72,6 +72,8 @@ class _ChecklistPageState extends State<ChecklistPage> {
   }
 
   void _showMissingItemsDialog(List<String> missingIngredients, List<String> missingEquipment) {
+    print("Missing Ingredients: $missingIngredients");
+    print("Missing Equipment: $missingEquipment");
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
