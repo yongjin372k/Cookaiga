@@ -15,6 +15,7 @@ CORS(app)
 # Set your OpenAI API key
 
 
+
 # Connect to MySQL Database
 conn = mysql.connector.connect(
     host="localhost",
@@ -68,19 +69,21 @@ def get_ingredients():
             conn.close()
 
 
-# API endpoint to generate recipes (Settle)
+# API endpoint to generate recipes
 @app.route('/generate-recipe', methods=['POST'])
 def generate_recipe_api():
-    data = request.json
+    data = request.json # Gets the JSON payload from the incoming POST request
     ingredients = data.get('ingredients')
-    print (ingredients)
+    print (ingredients) # Prints the received ingredients to the console for debugging
     if not ingredients:
-        return jsonify({"error": "No ingredients provided"}), 400
+        return jsonify({"error": "No ingredients provided"}), 400 # Returns an error response if ingredients are missing
 
+    # Construct the prompt to send to Azure OpenAI
     prompt = f"""
-    Using the following ingredients: {ingredients}, suggest 4 simple and healthy lunch recipe names only. Do not include detailed steps or descriptions, just the names of the recipes.
+    Using the following ingredients: {ingredients}, suggest 4 simple and healthy lunch recipe names only. 
+    Do not include detailed steps or descriptions, just the names of the recipes.
     """
-    
+    # Calls Azure OpenAI with the prompt using GPT-3.5-turbo-instruct model
     response = client.completions.create(
         model="gpt-35-turbo-instruct",
         prompt=prompt,
@@ -90,20 +93,29 @@ def generate_recipe_api():
         frequency_penalty=0,
         presence_penalty=0
     )
+    # Takes the text output, strips any extra whitespace, and splits by new line into a list
     recipe_list = response.choices[0].text.strip().split("\n")
     # Remove numbering if any (like '1. Tomato')
     recipe_list = [recipe.lstrip('0123456789. ') for recipe in recipe_list]
+    # Print
+    print("Generated Recipe Names:")
+    for idx, recipe in enumerate(recipe_list, start=1):
+        print(f"{idx}. {recipe}")
+    # Returns the list of recipe names as a JSON response
     return jsonify({"recipe": recipe_list})
 
 # Generate based on individual ingredient from inventory page
 @app.route('/generate-recipe-from-ingredient', methods=['POST'])
 def generate_recipe_from_single_ingredient():
+    # It reads the JSON payload sent to this route and extracts the value of the "ingredient" key.
     data = request.json
     ingredient = data.get('ingredient')
 
+    # If no ingredient is provided, return an HTTP 400 Bad Request with an error message.
     if not ingredient:
         return jsonify({"error": "No ingredient provided"}), 400
 
+    # Attempts to connect to the MySQL database using credentials. (mysql.connector is the Python library used)
     try:
         conn = mysql.connector.connect(
             host='localhost',
@@ -111,43 +123,62 @@ def generate_recipe_from_single_ingredient():
             password='7aF54E0c31',
             database='Cookaiga'
         )
+        # A cursor is created for executing SQL queries.
         cursor = conn.cursor()
 
         # Use parameterized query to avoid SQL injection & syntax errors
         query = "SELECT item, quantity_with_unit, expiry FROM ingredients WHERE item = %s AND quantity_with_unit != ''"
         cursor.execute(query, (ingredient,))
+        # Retrieves the first matching ingredient row from the DB. Returns None if not found.
         row = cursor.fetchone()
 
+        #  If no ingredient found: Returns a 404 Not Found with appropriate error message.
         if not row:
             return jsonify({"error": "Ingredient not found or quantity empty"}), 404
-
+        
+        #  If no ingredient found: Returns a 404 Not Found with appropriate error message.
         formatted_ingredient = f"{row[1]} of {row[0]} expiring on {row[2]}"
         print("Using ingredient:", formatted_ingredient)
 
+        # This prompt is crafted to instruct the GPT model to generate 4 simple recipe names using the given ingredient info.
         prompt = f"""
         Using the following ingredient: {formatted_ingredient}, suggest 4 simple and healthy lunch recipe names only.
         Do not include detailed steps or descriptions, just the names of the recipes.
         """
 
         response = client.completions.create(
+            #  the specific model used.
             model="gpt-35-turbo-instruct",
             prompt=prompt,
+            # higher creativity.
             temperature=1,
+            # max response length.
             max_tokens=1000,
+            # etc., control response randomness
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0
         )
-
+        # Splits the result by lines.
+        # Strips any leading numbers like 1., 2) from each recipe name.
+        
         recipe_list = response.choices[0].text.strip().split("\n")
         recipe_list = [recipe.lstrip('0123456789. ').strip() for recipe in recipe_list]
 
-        return jsonify(recipe_list)
+        # Prints the final cleaned recipe list to your console (for debugging/logging).
+        print("Generated Recipe Names:")
+        for i, r in enumerate(recipe_list, 1):
+            print(f"{i}. {r}")
 
+        # Returns the final cleaned list of recipe names to the frontend as a JSON response.
+        return jsonify(recipe_list)
+    
+    # If any MySQL-specific error occurs, it logs it and returns a 500 Internal Server Error.
     except mysql.connector.Error as err:
         print("MySQL Error:", err)
         return jsonify({"error": str(err)}), 500
 
+    # Ensures both cursor and DB connection are closed, whether the query was successful or not.
     finally:
         if cursor:
             cursor.close()
@@ -352,14 +383,18 @@ def generate_recipe_steps():
     print("Updated Ingredients List:", formatted_ingredients)
 
     prompt = f"""
-    Generate a simple step-by-step guide for cooking "{recipe_name}" with a focus on parent-child collaboration. Using the following ingredients: {formatted_ingredients}.Each step must include:
-    1. A "step" field with the cooking process instruction.
+    Generate a short, simple step-by-step guide for cooking "{recipe_name}" with a focus on parent-child collaboration. Using the following ingredients: {formatted_ingredients}.Each step must include:
+    1. Each step must include only **one clear action**.
     2. A "motivation" field with a short, encouraging motivational message.
+    3. Use **short and simple sentences**
+    4. Be fun and easy to follow for both parents and children.
+    5. Do NOT use vague phrases like "cook as per package" or "season to taste".
+    6. Always provide concrete instructions (e.g., "Boil the noodles in water for 5 minutes").
 
     Categorize steps as:
-    - Parents: Tasks that involve sharp objects, hot surfaces, or dangerous equipment.
-    - Children: Tasks that are safer or more fun, such as mixing or decorating.
-    - Everyone: Tasks that involve teamwork.
+    - (parent): For tasks that involve sharp tools (like cutting, slicing, or chopping) or anything hot (like using the stove or oven).
+    - (child): For safe and fun tasks such as stirring, mixing, decorating, sprinkling, or setting the table.
+    - Everyone: Steps that need teamwork
 
     Return the response as a valid JSON array where each object has "step" and "motivation" keys. Example format:
     [
@@ -618,7 +653,7 @@ def save_filtered_ingredients_to_db(filtered_ingredients, user_id):
 # Helper function to generate recipes directly
 def generate_recipe_from_ingredients(ingredients):
     prompt = f"""
-    Using the following ingredients: {', '.join(ingredients)}, suggest 4 simple and healthy recipe names only. 
+    Using the following ingredients: {', '.join(ingredients)}, suggest 4 simple and healthy lunch recipe names only 
     Do not include detailed steps or descriptions, just the names of the recipes.
     """
     try:
@@ -634,6 +669,10 @@ def generate_recipe_from_ingredients(ingredients):
         recipe_list = response.choices[0].text.strip().split("\n")
         # Clean up numbering or extra characters
         recipe_list = [recipe.lstrip('0123456789. ') for recipe in recipe_list]
+        print("Generated Recipes:")
+        for i, recipe in enumerate(recipe_list, 1):
+            print(f"{i}. {recipe}")
+
         return {"recipe": recipe_list}
     except Exception as e:
         print(f"Error generating recipes: {e}")

@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'homepage.dart';
 import 'package:frontend/screens/jwtDecodeService.dart'; // Import JWT Service
+import 'package:intl/intl.dart';
 
 class MyKitchen03Content extends StatefulWidget {
   @override
@@ -22,6 +23,16 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   List<Map<String, dynamic>> inventory = []; // Inventory data from the backend
   final JwtService _jwtService = JwtService(); // JWT Service instance
   bool _isEditingDialogs = false;
+  final TextEditingController _expiryDateController = TextEditingController();
+  
+  bool isValidDate(String input) {
+    try {
+      final date = DateFormat('yyyy-MM-dd').parseStrict(input);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 
   //final String baseUrl = "$URL/api/ingredients?userID=1"; // Replace with your backend URL
 
@@ -367,12 +378,24 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                 const SizedBox(height: 10),
                 // Expiry Date field
                 TextField(
-                  decoration: const InputDecoration(
+                  controller: _expiryDateController,
+                  readOnly: true,
+                  decoration: InputDecoration(
                     labelText: 'Expiry Date',
                     labelStyle: TextStyle(fontFamily: 'Chewy'),
-                    hintText: 'YYYY-MM-DD', // Add a hint for the format
+                    hintText: 'Select a date',
                   ),
-                  onChanged: (value) => expiryDate = value,
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      _expiryDateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                    }
+                  },
                 ),
               ],
             ),
@@ -456,6 +479,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
     String quantity = quantityUnitParts.isNotEmpty ? quantityUnitParts[0] : "0";
     String unit = quantityUnitParts.length > 1 ? quantityUnitParts[1].toLowerCase() : "other";
     String expiryDate = item['expiry'] ?? "";
+    final TextEditingController _expiryDateController = TextEditingController(text: expiryDate);
 
     List<String> units = ['piece', 'gram', 'liter', 'cup', 'other'];
 
@@ -514,9 +538,155 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                 ),
                 const SizedBox(height: 10),
                 TextField(
-                  decoration: const InputDecoration(labelText: 'Expiry Date'),
-                  controller: TextEditingController(text: expiryDate),
-                  onChanged: (value) => expiryDate = value,
+                  controller: _expiryDateController,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Expiry Date',
+                    labelStyle: TextStyle(fontFamily: 'Chewy'),
+                    hintText: 'Select a date',
+                  ),
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.tryParse(_expiryDateController.text) ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      final formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
+                      _expiryDateController.text = formattedDate;
+                      expiryDate = formattedDate; // ✅ Keep variable in sync
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (onDialogClose != null) {
+                  onDialogClose();
+                }
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(fontFamily: 'Chewy'),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                final updatedItem = {
+                  'item': itemName,
+                  'quantityWithUnit': '$quantity ${unit.endsWith('s') ? unit : '${unit}s'}',
+                  'expiry': expiryDate,
+                };
+
+                updateInventoryItem(item['id'], updatedItem).then((_) {
+                  if (onDialogClose != null) {
+                    onDialogClose();
+                  }
+                  Navigator.pop(context);
+                });
+              },
+              child: const Text(
+                'Save',
+                style: TextStyle(fontFamily: 'Chewy'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  void showEdit2Dialog(BuildContext context, Map<String, dynamic> item, {VoidCallback? onDialogClose}) {
+    String itemName = item['item'] ?? "";
+    List<String> quantityUnitParts = (item['quantityWithUnit'] ?? "").split(' ');
+    String quantity = quantityUnitParts.isNotEmpty ? quantityUnitParts[0] : "0";
+    String unit = quantityUnitParts.length > 1 ? quantityUnitParts[1].toLowerCase() : "other";
+    String expiryDate = item['expiry'] ?? "";
+    final TextEditingController _expiryDateController = TextEditingController(text: expiryDate);
+
+    List<String> units = ['piece', 'gram', 'liter', 'cup', 'other'];
+
+    if (unit.endsWith('s') && unit != 'pieces') {
+      unit = unit.substring(0, unit.length - 1);
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent accidental closure
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: createMaterialColor(const Color(0xFFF9E0D2)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: const Text(
+            'Edit Item',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Chewy',
+              color: Colors.black,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Name of Item' , labelStyle: TextStyle(fontFamily: 'Chewy'),),
+                  controller: TextEditingController(text: itemName),
+                  onChanged: (value) => itemName = value,
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Quantity', labelStyle: TextStyle(fontFamily: 'Chewy'),),
+                  keyboardType: TextInputType.number,
+                  controller: TextEditingController(text: quantity),
+                  onChanged: (value) => quantity = value,
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Unit', labelStyle: TextStyle(fontFamily: 'Chewy'),),
+                  value: units.contains(unit) ? unit : null,
+                  items: units
+                      .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        unit = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _expiryDateController,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Expiry Date',
+                    labelStyle: TextStyle(fontFamily: 'Chewy'),
+                    hintText: 'Select a date',
+                  ),
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.tryParse(_expiryDateController.text) ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      final formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
+                      _expiryDateController.text = formattedDate;
+                      expiryDate = formattedDate; // ✅ Keep variable in sync
+                    }
+                  },
                 ),
               ],
             ),
@@ -699,11 +869,14 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                     final requiresEditing = item['quantityWithUnit'].isEmpty || item['expiry'].isEmpty;
 
                     // Check if the item is expiring today
-                    final isExpiringToday = expiryDate != null &&
-                        expiryDate.year == today.year &&
-                        expiryDate.month == today.month &&
-                        expiryDate.day == today.day;
+                    final todayDateOnly = DateTime(today.year, today.month, today.day);
+                    final expiryDateOnly = expiryDate != null
+                        ? DateTime(expiryDate.year, expiryDate.month, expiryDate.day)
+                        : null;
 
+                    final isExpiringToday = expiryDateOnly == todayDateOnly;
+                    final isExpired = expiryDateOnly != null && expiryDateOnly.isBefore(todayDateOnly);
+                    final isFresh = expiryDateOnly != null && expiryDateOnly.isAfter(todayDateOnly);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 15.0),
                       child: Container(
@@ -786,17 +959,46 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                               size: 18,
                                             ),
                                           ),
-                                        if (isExpiringToday) // For expiry today
-                                          Padding(
-                                            padding: const EdgeInsets.only(left: 8.0),
-                                            child: Icon(
-                                              Icons.hourglass_bottom, // Icon for expiry today
-                                              color: Colors.red,
-                                              size: 18,
+                                        if (isExpired)
+                                            Padding(
+                                              padding: const EdgeInsets.only(left: 8.0),
+                                              child: Row(
+                                                children: const [
+                                                  Icon(Icons.warning, color: Colors.red, size: 18),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    'Expired',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.red,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontFamily: 'Chewy',
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          else if (isExpiringToday)
+                                            Padding(
+                                              padding: const EdgeInsets.only(left: 8.0),
+                                              child: Row(
+                                                children: const [
+                                                  Icon(Icons.hourglass_bottom, color: Colors.orange, size: 18),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    'Expiring Today',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.orange,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontFamily: 'Chewy',
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                      ],
-                                    ),
+                                        ],
+                                      ),
                                     const SizedBox(height: 5),
 
                                     // Quantity
@@ -824,7 +1026,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                           'Expiry: ${item['expiry'].isEmpty ? 'N/A' : item['expiry']}',
                                           style: TextStyle(
                                             fontSize: 16,
-                                            color: isExpiringToday ? Colors.red : Colors.black,
+                                            color: isExpired ? Colors.red : (isExpiringToday ? Colors.orange : Colors.black),
                                             fontFamily: 'Chewy',
                                           ),
                                         ),
@@ -841,7 +1043,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                 if (value == 'view') {
                                   showViewDialog(context, item);
                                 } else if (value == 'edit') {
-                                  showEditDialog(context, item);
+                                  showEdit2Dialog(context, item);
                                 }
                               },
                               icon: const Icon(

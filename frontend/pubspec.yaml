@@ -51,6 +51,7 @@ dependencies:
   logger: any
   flutter_staggered_grid_view: any
   url_launcher: ^6.2.4
+  intl: ^0.17.0
 
 dev_dependencies:
   flutter_test:
