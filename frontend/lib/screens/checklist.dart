@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:frontend/screens/audio_controller.dart';
 import 'package:frontend/screens/letscook_05.dart';
 import 'package:frontend/screens/letscook_06.dart';
 import 'package:http/http.dart' as http;
@@ -71,6 +72,8 @@ class _ChecklistPageState extends State<ChecklistPage> {
   }
 
   void _showMissingItemsDialog(List<String> missingIngredients, List<String> missingEquipment) {
+    print("Missing Ingredients: $missingIngredients");
+    print("Missing Equipment: $missingEquipment");
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -189,15 +192,119 @@ class _ChecklistPageState extends State<ChecklistPage> {
     );
   }
 
+  // void _navigateToCookingSteps() async {
+  //   setState(() {
+  //     isFetchingSteps = true; // Show loading indicator
+  //   });
+
+  //   try {
+  //     final url = Uri.parse('$URL2/generate-recipe-steps');
+  //     final response = await http.post(
+  //       url,
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode({
+  //         'recipe_name': widget.recipeName,
+  //         'ingredients': ingredientChecklist.keys.toList(),
+  //       }),
+  //     );
+
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //       final List<Map<String, String>> steps = (data['steps'] as List<dynamic>)
+  //           .map((step) => {
+  //                 'motivation': (step['motivation'] ?? "").toString(),
+  //                 'step': (step['step'] ?? "").toString(),
+  //               })
+  //           .toList();
+
+  //       Navigator.push(
+  //         context,
+  //         MaterialPageRoute(
+  //           builder: (context) => LetsCook05Content(
+  //             onModeSelected: (isCookingAlone) {
+  //               if (isCookingAlone) {
+  //                 Navigator.push(
+  //                   context,
+  //                   MaterialPageRoute(
+  //                     builder: (context) => CookingStepsScreen(
+  //                       steps: steps,
+  //                       isCookingAlone: true,
+  //                       recipeName: widget.recipeName,
+  //                     ),
+  //                   ),
+  //                 );
+  //               } else {
+  //                 Navigator.push(
+  //                   context,
+  //                   MaterialPageRoute(
+  //                     builder: (context) => LetsCook06Content(
+  //                       onNext: () {
+  //                         Navigator.push(
+  //                           context,
+  //                           MaterialPageRoute(
+  //                             builder: (context) => CookingStepsScreen(
+  //                               steps: steps,
+  //                               isCookingAlone: false,
+  //                               recipeName: widget.recipeName,
+  //                             ),
+  //                           ),
+  //                         );
+  //                       },
+  //                     ),
+  //                   ),
+  //                 );
+  //               }
+  //             },
+  //           ),
+  //         ),
+  //       );
+  //     } else {
+  //       throw Exception('Failed to fetch steps: ${response.statusCode}');
+  //     }
+  //   } catch (error) {
+  //     print('Error fetching steps: $error');
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text('Failed to fetch steps. Please try again later.'),
+  //       ),
+  //     );
+  //   } finally {
+  //     setState(() {
+  //       isFetchingSteps = false; // Hide loading indicator
+  //     });
+  //   }
+  // }
+
   void _navigateToCookingSteps() async {
     setState(() {
       isFetchingSteps = true; // Show loading indicator
     });
 
     try {
-      final url = Uri.parse('$URL2/generate-recipe-steps');
-      final response = await http.post(
-        url,
+      // ✅ DEBUG: Log ingredients being deducted
+      final ingredientsToDeduct = ingredientChecklist.keys.toList();
+      print("🧾 Deducting the following ingredients: $ingredientsToDeduct");
+
+      // 🔁 Step 1: Deduct ingredients from backend
+      final deductResponse = await http.post(
+        Uri.parse('$URL2/deduct-ingredients'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'ingredients': ingredientsToDeduct,
+        }),
+      );
+
+      if (deductResponse.statusCode != 200) {
+        print("❗Failed to deduct ingredients: ${deductResponse.body}");
+        throw Exception("Deduct failed");
+      } else {
+        print("✅ Ingredients deducted");
+        
+      }
+
+      // 🔁 Step 2: Generate recipe steps
+      final stepsResponse = await http.post(
+        Uri.parse('$URL2/generate-recipe-steps'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'recipe_name': widget.recipeName,
@@ -205,8 +312,8 @@ class _ChecklistPageState extends State<ChecklistPage> {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      if (stepsResponse.statusCode == 200) {
+        final data = jsonDecode(stepsResponse.body);
         final List<Map<String, String>> steps = (data['steps'] as List<dynamic>)
             .map((step) => {
                   'motivation': (step['motivation'] ?? "").toString(),
@@ -256,13 +363,13 @@ class _ChecklistPageState extends State<ChecklistPage> {
           ),
         );
       } else {
-        throw Exception('Failed to fetch steps: ${response.statusCode}');
+        throw Exception('Failed to fetch steps: ${stepsResponse.statusCode}');
       }
     } catch (error) {
-      print('Error fetching steps: $error');
+      print('❌ Error during cooking start: $error');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to fetch steps. Please try again later.'),
+          content: Text('Failed to start cooking. Please try again later.'),
         ),
       );
     } finally {
@@ -271,6 +378,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
       });
     }
   }
+
 
   /// Show a swap dialog with alternative ingredient options
   void _showSwapDialog(String ingredient, List<String> alternatives) {
@@ -402,18 +510,48 @@ class _ChecklistPageState extends State<ChecklistPage> {
       body: Stack(
         children: [
           // Back Button Positioned
-          Positioned(
-            top: 10,
-            left: 10,
-            right: 10,
+          Positioned.fill(
+            child: Image.asset(
+              'assets/background/page_view_my_kitchen_01.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
+                // Back Button
+                RawMaterialButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Go back instead of pushing new page
                   },
-                  child: canvaImage('back_arrow.png', width: 50, height: 50),
+                  fillColor: const Color(0xFF4A90A4),
+                  constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                  shape: const CircleBorder(),
+                  child: Image.asset(
+                    'assets/buttons/back_arrow.png',
+                    width: 40,
+                    height: 40,
+                  ),
+                ),
+      
+                // Sound toggle
+                RawMaterialButton(
+                  onPressed: () async {
+                    await toggleMusic();
+                    setState(() {}); // Ensure UI updates
+                  },
+                  fillColor: const Color(0xFF4A90A4),
+                  constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                  shape: const CircleBorder(),
+                  child: Image.asset(
+                    isMusicOn
+                        ? 'assets/buttons/sound_on_white.png'
+                        : 'assets/buttons/sound_off_white.png',
+                    width: 25,
+                    height: 25,
+                  ),
                 ),
               ],
             ),

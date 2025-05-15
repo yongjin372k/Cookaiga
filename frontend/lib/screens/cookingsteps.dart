@@ -11,6 +11,7 @@ class CookingStepsScreen extends StatefulWidget {
   final List<Map<String, String>> steps;
   final bool isCookingAlone; // New parameter to differentiate modes
   final String recipeName; // Add recipeName parameter
+  
 
   const CookingStepsScreen({Key? key, required this.steps, required this.isCookingAlone, required this.recipeName}) : super(key: key);
 
@@ -26,6 +27,8 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
   late ConfettiController _confettiController;
   late stt.SpeechToText _speech;
   bool _isListening = false;
+  late String instructionText;
+  late String selectedPrompt;
   final List<String> encouragements = [
     "Great job! Keep going!",
     "You're doing amazing!",
@@ -35,15 +38,72 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
   ];
 
   final Random _random = Random();
+
+  final List<String> cookingPrompts = [
+    "Take your time, no rush! When you're ready, \nclick Continue.",
+    "No pressure—go at your \nown pace!",
+    "Ready when you are! \nClick continue to move on.",
+    "Enjoy the moment. \nContinue when you're set.",
+    "Don't worry, you’re doing great. \nHit continue when ready!",
+    "Need a breather? \nCome back when you're ready.",
+    "Feel free to explore. \nTap continue when you're done.",
+    "You're in control! \nContinue when it feels right.",
+    "Whenever you're ready, \nlet's move forward.",
+    "Pause if you need to. \nContinue when you're comfortable.",
+  ];
+
+  String? getStepImage(String description) {
+    final Map<String, String> imageMap = {
+      "chop": "assets/cooking_icons/chopping_board.png",
+      "slice": "assets/cooking_icons/chopping_board.png",
+      "cut": "assets/cooking_icons/chopping_board.png",
+      "add sauce": "assets/cooking_icons/add_sauce.png",
+      "pour": "assets/cooking_icons/add_sauce.png",
+      "mix": "assets/cooking_icons/mixing_bowl.png",
+      "stir-fry": "assets/cooking_icons/frying_pan.png",
+      "stir": "assets/cooking_icons/mixing_bowl.png",
+      "fry": "assets/cooking_icons/frying_pan.png",
+      "saute": "assets/cooking_icons/frying_pan.png",
+      "heat": "assets/cooking_icons/heat.png",
+      "rice": "assets/cooking_icons/rice.png",
+      "boil": "assets/cooking_icons/boil.png",
+      "bake": "assets/cooking_icons/bake.png",
+      "whisk": "assets/cooking_icons/whisk.png",
+      "serve": "assets/cooking_icons/serve.png",
+      "steam": "assets/cooking_icons/steam.png",
+      "grill": "assets/cooking_icons/grill.png",
+      "crack": "assets/cooking_icons/crack.png",
+      "season": "assets/cooking_icons/season.png",
+      "place": "assets/cooking_icons/plate.png",
+      "sprinkle": "assets/cooking_icons/sprinkle.png",
+      "cook": "assets/cooking_icons/cook.png",
+      "juice": "assets/cooking_icons/juice.png",
+      "drain": "assets/cooking_icons/drain.png",
+    };
+
+    description = description.toLowerCase();
+    for (final key in imageMap.keys) {
+      if (description.contains(key)) {
+        return imageMap[key];
+      }
+    }
+    return null;
+  }
+
   
 
   @override
   void initState() {
     super.initState();
+
+    selectedPrompt = cookingPrompts[Random().nextInt(cookingPrompts.length)];
+
+    
     _initTts();
     _startTimer(); // Start the timer when the widget is initialized
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
     _speech = stt.SpeechToText();
+    
 
     // Speak Step 1 when the screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -63,32 +123,94 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
   void _initTts() {
     flutterTts = FlutterTts();
     flutterTts.setLanguage("en-US");
-    flutterTts.setSpeechRate(0.4);
+    flutterTts.setSpeechRate(0.35);
+    flutterTts.setPitch(1.2); // More engaging voice tone
   }
 
   void _startListening() async {
     bool available = await _speech.initialize(
       onStatus: (status) {
         print('🎙 Speech status: $status');
-        setState(() {
-          _isListening = status == "listening"; // Update UI when listening
-        });
+
+        if (status == 'notListening' && _isListening) {
+          print("STT stopped unexpectedly (possibly timeout or UI interference).");
+          setState(() => _isListening = false);
+        }
+
+        if (status == 'done') {
+          print("STT session ended.");
+          setState(() => _isListening = false);
+        }
       },
-      onError: (error) => print('Speech error: $error'),
+      onError: (error) {
+        print('Speech error: $error');
+        setState(() => _isListening = false);
+      },
     );
 
     if (available) {
       setState(() => _isListening = true);
+
+      const int maxListenSeconds = 100;
+      int secondsLeft = maxListenSeconds;
+
+      Timer.periodic(Duration(seconds: 1), (timer) {
+        if (!_isListening || secondsLeft <= 0) {
+          timer.cancel();
+        } else {
+          print("Listening... $secondsLeft seconds left");
+          secondsLeft--;
+        }
+      });
+
+      bool commandHandled = false;
+
       _speech.listen(
+        listenMode: stt.ListenMode.confirmation,
+        listenFor: Duration(seconds: maxListenSeconds),
+        pauseFor: Duration(seconds: 10),
+        partialResults: true,
         onResult: (result) {
-          String command = result.recognizedWords.toLowerCase();
+          String command = result.recognizedWords.toLowerCase().trim();
           print("User said: $command");
 
-          if (command.contains("next step")) {
-            print("Recognized 'Next Step' command!");
-            _speech.stop(); // Stop listening
-            setState(() => _isListening = false); // Update UI
-            _goToNextStep();
+          if (!result.finalResult) {
+            print("Ignoring interim result...");
+            return;
+          }
+
+          if (!commandHandled) {
+            if (command.contains("next step")) {
+              print("Recognized 'Next Step'!");
+              commandHandled = true;
+              _speech.stop();
+              setState(() => _isListening = false);
+              _goToNextStep();
+            } else if (command.contains("previous")) {
+              print("Recognized 'Previous'!");
+              commandHandled = true;
+              _speech.stop();
+              setState(() => _isListening = false);
+
+              if (currentStep > 0) {
+                setState(() {
+                  currentStep--;
+                  _timer?.cancel();
+                  _startTimer();
+                });
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _speakEncouragementAndStep(widget.steps[currentStep]['step'] ?? '');
+                });
+              }
+            } else if (command.contains("finish")) {
+              print("Recognized 'Finish'!");
+              commandHandled = true;
+              _speech.stop();
+              setState(() => _isListening = false);
+              _goToNextStep(); // this already handles the finish transition
+            } else {
+              print("Unknown command: $command");
+            }
           }
         },
       );
@@ -98,7 +220,10 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
     }
   }
 
-  void _goToNextStep() {
+  void _goToNextStep() async {
+    await flutterTts.stop(); // ⛔ Stop ongoing TTS immediately
+    setState(() => isSpeaking = false);
+
     if (currentStep < widget.steps.length - 1) {
       setState(() {
         currentStep++;
@@ -110,10 +235,11 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
         _speakEncouragementAndStep(widget.steps[currentStep]['step'] ?? '');
       });
 
-      _startListening(); // Start voice recognition for "Next Step"
+      // _startListening();
+       // Start voice recognition for "Next Step"
     } else {
       setState(() {
-        _confettiController.play(); // 🎉 Trigger Confetti
+        _confettiController.play(); // Trigger Confetti
         _timer?.cancel();
       });
 
@@ -135,6 +261,10 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
     }
   }
 
+  String processTtsText(String text) {
+    // Insert small pauses between sentences for clarity
+    return text.replaceAll('. ', '. ... ');
+  }
 
   // Read step aloud
   Future<void> _speakEncouragementAndStep(String text) async {
@@ -143,37 +273,86 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
         isSpeaking = true;
       });
 
-      // Skip encouragement for the first step
+      // Step 1: Speak encouragement if it's not the first step
       if (currentStep > 0) {
         String encouragement = encouragements[_random.nextInt(encouragements.length)];
-        await flutterTts.speak(encouragement);
-        await Future.delayed(Duration(seconds: 3)); // Ensure a small delay before continuing
+        await flutterTts.speak(processTtsText(encouragement));
+        await flutterTts.awaitSpeakCompletion(true);
+        await Future.delayed(Duration(milliseconds: 300));
       }
 
-      // Speak the step after encouragement
-      await flutterTts.speak(text);
+      // Step 2: Split label and instruction
+      final match = RegExp(r'^(Step \d+ \([^)]+\)): (.+)$').firstMatch(text.trim());
+      final label = match?.group(1) ?? '';
+      String stepInstruction = match?.group(2) ?? text;
 
-      // Set speaking state to false after speech is done
+      // If cooking alone, skip label
+      if (widget.isCookingAlone) {
+        stepInstruction = stepInstruction.trim();
+      } else if (label.isNotEmpty) {
+        await flutterTts.speak(label);
+        await flutterTts.awaitSpeakCompletion(true);
+        await Future.delayed(Duration(milliseconds: 1200)); // pause after label
+      }
+
+      // Step 3: Chunk instruction and speak clearly
+      List<String> baseChunks = stepInstruction
+          .split(RegExp(r'[.,;]'))
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+      
+      List<String> finalChunks = [];
+
+      for (var chunk in baseChunks) {
+        // This keeps "and" at the start of the next chunk
+        final parts = chunk.split(" and ");
+        for (int i = 0; i < parts.length; i++) {
+          if (i == 0) {
+            finalChunks.add(parts[i].trim());
+          } else {
+            finalChunks.add("and ${parts[i].trim()}");
+          }
+        }
+      }
+
+      for (final chunk in finalChunks) {
+        if (chunk.toLowerCase().startsWith("and ")) {
+          await Future.delayed(Duration(milliseconds: 350)); // ⏸️ pause before saying "and ..."
+        }
+
+        final toSpeak = processTtsText(chunk);
+        await flutterTts.speak(toSpeak);
+        await flutterTts.awaitSpeakCompletion(true);
+      }
+
       setState(() {
         isSpeaking = false;
       });
+
+      _startListening();
     }
   }
 
 
-
-
   // Start a timer to show the check-in dialog if the user takes too long
   void _startTimer() {
-    _timer = Timer(const Duration(seconds: 10), () {
+    _timer = Timer(const Duration(seconds: 20), () {
       _showCheckInDialog();
     });
   }
+  
 
   // Show the check-in dialog
   void _showCheckInDialog() {
+    selectedPrompt = cookingPrompts[_random.nextInt(cookingPrompts.length)];
+
+    // Start STT for "continue" here
+    _startListeningForCheckIn();
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -188,9 +367,9 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
             ),
             textAlign: TextAlign.center,
           ),
-          content: const Text(
-            'Take your time, no rush! When you\'re ready, click Continue.',
-            style: TextStyle(
+          content: Text(
+            selectedPrompt,
+            style: const TextStyle(
               fontSize: 16,
               color: Colors.white,
               fontFamily: 'Chewy',
@@ -201,14 +380,17 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
             Center(
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close the dialog
-                  _startTimer(); // Restart the timer for the next step
+                  Navigator.pop(context);
+                  _speech.stop(); // Stop any previous STT
+
+                  Future.delayed(Duration(milliseconds: 200), () {
+                    _startListening();  // 🧠 Resume main STT
+                    _startTimer();
+                  });
                 },
                 style: ElevatedButton.styleFrom(
                   primary: const Color(0xFF336A84),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
                 child: const Text(
                   'Continue',
@@ -227,6 +409,44 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
     );
   }
 
+  void _startListeningForCheckIn() async {
+    bool available = await _speech.initialize(
+      onStatus: (status) {
+        print('🎙 Check-in STT status: $status');
+      },
+      onError: (error) {
+        print('❌ Check-in STT error: $error');
+      },
+    );
+
+    if (available) {
+      _speech.listen(
+        listenMode: stt.ListenMode.confirmation,
+        listenFor: Duration(seconds: 20),
+        pauseFor: Duration(seconds: 10),
+        partialResults: false,
+        onResult: (result) {
+          final command = result.recognizedWords.toLowerCase();
+          print("👂 Heard during check-in: $command");
+
+          if (command.contains("continue") || command.contains("yes") || command.contains("go on")) {
+            print("✅ Voice command matched: closing check-in");
+
+            Navigator.pop(context);     // ✅ Close dialog
+            _speech.stop();             // 🛑 Stops current session
+
+            Future.delayed(Duration(milliseconds: 500), () {
+              _startListening();        // 🔁 Resume STT for “next step”
+              _startTimer();            // 🔄 Resume idle timer
+            });
+          }
+        },
+      );
+
+      print("🎤 Listening for check-in confirmation...");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final step = widget.steps[currentStep];
@@ -236,7 +456,7 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
     final categoryRegex = RegExp(r'\((.*?)\)');
     final match = categoryRegex.firstMatch(step['step'] ?? '');
     final category = match != null ? match.group(1)!.toLowerCase() : "unknown";
-    
+    final stepImage = getStepImage(cleanedContent);
 
     String imagePath;
     Color backgroundColor;
@@ -244,27 +464,31 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
     if (widget.isCookingAlone) {
       // Default color for "Cooking Alone"
       backgroundColor = const Color(0xFFFCD4E4); // Change this to your preferred default color
-      imagePath = 'cookingalone_logo.png'; // Use the default image
+      imagePath = 'cooking_alone.png'; // Use the default image
+      instructionText = "Your Turn!";
     } else {
       // Determine background color and image based on the category
       switch (category) {
         case "parent":
           backgroundColor = const Color(0xFFA48EA1); // Purple
-          imagePath = 'instructions_parent.png';
+          imagePath = 'cooking_adult.png';
+          instructionText = "Adult's Turn!";
           break;
         case "child":
           backgroundColor = const Color(0xFFEDCF9E); // Yellow
-          imagePath = 'instructions_child.png';
+          imagePath = 'cooking_child.png';
+          instructionText = "Child's Turn!";
           break;
         case "everyone":
           backgroundColor = const Color(0xFFAED8C0); // Green
-          imagePath = 'instructions_everyone.png';
+          imagePath = 'cooking_together.png';
+          instructionText = "Everyone Together!";
           break;
         default:
           backgroundColor = Colors.white; // Default background color
           imagePath = '';
           break;
-      }
+      } 
     }
 
     return Scaffold(
@@ -285,13 +509,27 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                 gravity: 0.1, // Slow falling effect
                 colors: [Colors.green, Colors.blue, Colors.pink, Colors.orange],
               ),
+              const SizedBox(height: 25),
               if (imagePath.isNotEmpty)
-                canvaImage(
-                  imagePath,
-                  width: 200,
-                  height: 200,
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    canvaImage(
+                      imagePath,
+                      width: 125,
+                      height: 125,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      instructionText,
+                      style: textHeader, // use your existing text style
+                    ),
+                  ],
                 ),
-              const SizedBox(height: 1),
+              ),
+              const SizedBox(height: 20),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -313,6 +551,16 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
+                                  if (stepImage != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 10),
+                                    child: Image.asset(
+                                      stepImage,
+                                      width: 100,
+                                      height: 100,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
                                   // Cooking Process Text (Step Content First)
                                   Text(
                                     cleanedContent,
@@ -324,19 +572,6 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
-                                  const SizedBox(height: 40), // Add space between content and motivation
-                                  // Motivational Text
-                                  if (motivation.isNotEmpty)
-                                    Text(
-                                      motivation,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black,
-                                        height: 1.5,
-                                        fontFamily: 'Chewy',
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
                                 ],
                               ),
                             ),
@@ -376,7 +611,11 @@ class _CookingStepsScreenState extends State<CookingStepsScreen> {
                         setState(() {
                           currentStep--;
                           _timer?.cancel(); // Cancel the previous timer
-                          _startTimer(); // Start a new timer
+                          _startTimer();    // Start a new timer
+                        });
+
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _speakEncouragementAndStep(widget.steps[currentStep]['step'] ?? '');
                         });
                       },
                       child: Container(

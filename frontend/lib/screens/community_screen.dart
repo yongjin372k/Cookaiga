@@ -13,12 +13,22 @@ class Post {
   final int userID;
   final String imagePath;
   final String? caption;
+  int likes;                  // Not in Post
+  int comments;
+  final String username;
+  final String timestamp;     
+  bool hasLiked;              // Not in Post
 
   Post({
     required this.postID,
     required this.userID,
     required this.imagePath,
     this.caption,
+    this.likes = 0,           // Not in Post
+    this.comments = 0,
+    required this.username,
+    required this.timestamp,  
+    this.hasLiked = false,    // Not in Post
   });
 
   // Factory method to create a Post from JSON
@@ -28,6 +38,11 @@ class Post {
       userID: json['userID'],
       imagePath: json['imagePath'],
       caption: json['caption'],
+      likes: json['likes'] ?? 0,                    // Not in Post
+      comments: json['comments'] ?? 0,
+      username: json['username'] ?? 'User',
+      timestamp: json['timestamp'] ?? 'Just now',   
+      hasLiked: json['hasLiked'] ?? false,          // Not in Post
     );
   }
 }
@@ -51,7 +66,7 @@ class _CommunityPageState extends State<CommunityPage> {
 
   // Fetch posts from the backend
   Future<void> _fetchPosts() async {
-    final String apiUrl = "$URL/api/posts"; // Backend endpoint
+    final String apiUrl = "$URL/api/posts/all"; // Backend endpoint
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -76,8 +91,7 @@ class _CommunityPageState extends State<CommunityPage> {
       // Attempt to load a frontend asset
       return Image.asset(
         imagePath,
-        width: 180,
-        height: 200,
+        width: double.infinity,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
           print("Error loading frontend asset: $imagePath. Falling back to backend.");
@@ -99,8 +113,7 @@ class _CommunityPageState extends State<CommunityPage> {
 
     return Image.network(
       backendUrl,
-      width: 180,
-      height: 200,
+      width: double.infinity,
       fit: BoxFit.cover,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
@@ -110,11 +123,136 @@ class _CommunityPageState extends State<CommunityPage> {
         print("Error loading backend image: $backendUrl");
         return Container(
           color: Colors.grey,
-          width: 180,
+          width: double.infinity,
           height: 200,
           child: const Icon(Icons.error, color: Colors.red),
         );
       },
+    );
+  }
+
+  // Method to handle like button press
+  void _handleLike(Post post) {
+    setState(() {
+      post.likes += 1;
+    });
+  }
+
+  // Method to handle comment button press
+  void _handleComment(Post post) {
+    // Navigate to comment section or open a dialog
+    print("Navigate to comments for post ${post.postID}");
+  }
+
+  // Method to build each post item
+  Widget _buildPostItem(Post post) {
+    return Card(
+      color: Colors.white.withOpacity(0.9),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Post Header
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.blueGrey,
+                  child: Text(
+                    post.username[0],
+                    style: const TextStyle(color: Colors.white, fontFamily: "Chewy",),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      post.username,
+                      style: const TextStyle(
+                        fontFamily: "Chewy",
+                        fontSize: 18.0,
+                        color: Colors.black,
+                      ),
+                    ),
+                    Text(
+                      post.timestamp,
+                      style: const TextStyle(
+                        fontFamily: "VarelaRound",
+                        fontSize: 14.0,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Post Image
+          _buildImage(post.imagePath),
+
+          // Post Caption
+          if (post.caption != null && post.caption!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Text(
+                post.caption!,
+                style: const TextStyle(
+                  fontFamily: "VarelaRound",
+                  fontSize: 16.0,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+
+          // Like & Comment Buttons
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        post.hasLiked ? Icons.favorite : Icons.favorite_border, color: Colors.red),
+                      onPressed: () => _handleLike(post),
+                    ),
+                    Text(
+                      "${post.likes} Likes",
+                      style: const TextStyle(
+                        fontFamily: "VarelaRound",
+                        fontSize: 14.0,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.comment, color: Colors.blue),
+                      onPressed: () => _handleComment(post),
+                    ),
+                    Text(
+                      "${post.comments} Comments",
+                      style: const TextStyle(
+                        fontFamily: "VarelaRound",
+                        fontSize: 14.0,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -129,153 +267,54 @@ class _CommunityPageState extends State<CommunityPage> {
           onTap: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => HomePage()),
+              MaterialPageRoute(builder: (context) => const HomePage()),
             );
           },
           child: canvaImage('back_arrow.png', width: 50, height: 50),
         ),
+        title: const Text(
+          'Hello, My Community!',
+          style: TextStyle(
+            fontFamily: "Chewy",
+            fontSize: 22.0,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline, size: 30, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SharePage()),
+              );
+            },
+          )
+        ],
       ),
       body: isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Colors.white),
             )
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  const Text(
-                    'COOKAiGA Connect',
+          : posts.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No posts yet. Be the first to share!',
                     style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      fontSize: 18,
                       fontFamily: 'Chewy',
                     ),
                   ),
-                  const SizedBox(height: 8),
-
-                  // Share a Photo Button
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SharePage()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                    ),
-                    child: const Text(
-                      'share a photo',
-                      style: TextStyle(
-                        color: Color(0xFF5B98A9),
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Chewy',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Horizontal synchronized scrolling rows
-                  if (posts.isNotEmpty)
-                    SizedBox(
-                      height: 450,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: (posts.length / 2).ceil(),
-                        itemBuilder: (context, index) {
-                          final int firstRowIndex = index * 2;
-                          final int secondRowIndex = firstRowIndex + 1;
-
-                          return Column(
-                            children: [
-                              if (firstRowIndex < posts.length)
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: _buildImage(posts[firstRowIndex].imagePath),
-                                  ),
-                                ),
-                              if (secondRowIndex < posts.length)
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: _buildImage(posts[secondRowIndex].imagePath),
-                                  ),
-                                ),
-                            ],
-                          );
-                        },
-                      ),
-                    )
-                  else
-                    const Center(
-                      child: Text(
-                        'No posts yet. Be the first to share!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontFamily: 'Chewy',
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-
-                  // Total Photos Shared Section
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFAED8C0),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Total photos shared by the community:',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.black,
-                              fontFamily: 'Chewy',
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${posts.length}',
-                            style: const TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFamily: 'Chewy',
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            "Do you know? For every 100 photos shared, \$1 will be donated to SPARKS (Singapore).",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black,
-                              fontFamily: 'Chewy',
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                )
+              : ListView.builder(
+                  itemCount: posts.length,
+                  itemBuilder: (context, index) {
+                    final post = posts[index];
+                    return _buildPostItem(post);
+                  },
+                ),
     );
   }
 }

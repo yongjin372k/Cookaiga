@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/main.dart';
+import 'package:frontend/screens/audio_controller.dart';
 import 'package:frontend/screens/letscook_03.dart';
 import 'package:frontend/screens/mykitchen_01.dart';
 import 'design.dart';
@@ -10,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'homepage.dart';
 import 'package:frontend/screens/jwtDecodeService.dart'; // Import JWT Service
+import 'package:intl/intl.dart';
 
 class MyKitchen03Content extends StatefulWidget {
   @override
@@ -20,6 +22,17 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   // Dummy data for the inventory
   List<Map<String, dynamic>> inventory = []; // Inventory data from the backend
   final JwtService _jwtService = JwtService(); // JWT Service instance
+  bool _isEditingDialogs = false;
+  final TextEditingController _expiryDateController = TextEditingController();
+  
+  bool isValidDate(String input) {
+    try {
+      final date = DateFormat('yyyy-MM-dd').parseStrict(input);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 
   //final String baseUrl = "$URL/api/ingredients?userID=1"; // Replace with your backend URL
 
@@ -31,6 +44,10 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
 
   // Fetch inventory data from the backend
   Future<void> fetchInventory() async {
+    if (_isEditingDialogs) {
+      print("🛑 Skipping fetchInventory: Dialogs already running.");
+      return;
+    }
     try {
 
       String? token = await _jwtService.storage.read(key: "jwt_token");
@@ -66,6 +83,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
 
         // 🔥 Step 2: Open Edit Dialog for each ingredient with missing fields
         if (ingredientsToEdit.isNotEmpty) {
+          _isEditingDialogs = true;
           Future.delayed(Duration(milliseconds: 500), () {
             _openEditDialogs(ingredientsToEdit);
           });
@@ -81,48 +99,50 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
   void _openEditDialogs(List<Map<String, dynamic>> ingredientsToEdit) {
     if (ingredientsToEdit.isEmpty) return;
 
-    print("Detected ${ingredientsToEdit.length} ingredients that require editing:");
-    for (var ingredient in ingredientsToEdit) {
-      print("Needs edit: ${ingredient['item']} (Quantity: '${ingredient['quantityWithUnit']}', Expiry: '${ingredient['expiry']}')");
+    final seenNames = <String>{};
+    final uniqueToEdit = <Map<String, dynamic>>[];
+
+    for (var item in ingredientsToEdit) {
+      final name = item['item'].toLowerCase().trim();
+      if (!seenNames.contains(name)) {
+        seenNames.add(name);
+        uniqueToEdit.add(item);
+      }
     }
 
+    print("🛠️ Unique items needing edit: ${uniqueToEdit.length}");
+
     int currentIndex = 0;
-    Set<int> editedIndexes = {}; // ✅ Ensure each ingredient is edited only once
 
     void showNextDialog() {
-      if (currentIndex >= ingredientsToEdit.length) {
-        print("All required ingredient edits completed! Stopping here.");
+      if (currentIndex >= uniqueToEdit.length) {
+        print("✅ All edit dialogs completed.");
+        _isEditingDialogs = false;
+
+        // ✅ Fetch fresh data after edits complete
+        Future.delayed(Duration(milliseconds: 300), () {
+          fetchInventory();  // Re-pull inventory to reflect changes
+        });
+
         return;
       }
 
-      // ✅ Prevent reopening the same dialog
-      if (editedIndexes.contains(currentIndex)) {
-        print("Skipping duplicate dialog for: ${ingredientsToEdit[currentIndex]['item']}");
-        currentIndex++; // Move to next
-        showNextDialog(); // Proceed to next dialog
-        return;
-      }
+      final item = uniqueToEdit[currentIndex];
+      print("📝 Editing: ${item['item']} (${currentIndex + 1}/${uniqueToEdit.length})");
 
-      print("Opening edit dialog for: ${ingredientsToEdit[currentIndex]['item']} (${currentIndex + 1}/${ingredientsToEdit.length})");
-      editedIndexes.add(currentIndex); // ✅ Mark this item as edited
-
-      showEditDialog(context, ingredientsToEdit[currentIndex], onDialogClose: () {
-        print("Closing dialog for: ${ingredientsToEdit[currentIndex]['item']}");
-        currentIndex++; // Move to next item
-
-        // ✅ Prevent reopening dialogs unnecessarily
-        if (currentIndex < ingredientsToEdit.length) {
-          Future.delayed(Duration(milliseconds: 300), () {
-            showNextDialog();
-          });
-        } else {
-          print("Final dialog closed. No more ingredients to edit.");
-        }
+      // Use Future.microtask to delay and avoid double show
+      Future.microtask(() {
+        showEditDialog(context, item, onDialogClose: () {
+          currentIndex++;
+          showNextDialog();
+        });
       });
     }
 
-    showNextDialog(); // ✅ Start processing dialogs
+    showNextDialog();
   }
+
+
 
   // Add a new inventory item
   Future<void> addInventoryItem(String itemName, String quantity, String unit, String expiryDate) async {
@@ -152,6 +172,10 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
         body: jsonEncode(newItem),
       );
       if (response.statusCode == 200) {
+        print("Successfully added item:");
+        print("Item: $itemName");
+        print("Quantity: $quantity $unit");
+        print("Expiry Date: $expiryDate");
         fetchInventory(); // Refresh the list after adding
       } else {
         print("Failed to add item: ${response.statusCode}");
@@ -225,7 +249,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
 
     try {
       final response = await http.post(
-        Uri.parse('$URL/api/recipes/generate-from-database'),
+        Uri.parse('$URL2/generate-recipe-from-ingredient'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"ingredient": ingredient}),
       );
@@ -277,9 +301,6 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
       }
     }
   }
-
-
-
 
 
   /// Helper function to format quantity with singular/plural unit
@@ -357,12 +378,24 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                 const SizedBox(height: 10),
                 // Expiry Date field
                 TextField(
-                  decoration: const InputDecoration(
+                  controller: _expiryDateController,
+                  readOnly: true,
+                  decoration: InputDecoration(
                     labelText: 'Expiry Date',
                     labelStyle: TextStyle(fontFamily: 'Chewy'),
-                    hintText: 'YYYY-MM-DD', // Add a hint for the format
+                    hintText: 'Select a date',
                   ),
-                  onChanged: (value) => expiryDate = value,
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      _expiryDateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                    }
+                  },
                 ),
               ],
             ),
@@ -446,6 +479,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
     String quantity = quantityUnitParts.isNotEmpty ? quantityUnitParts[0] : "0";
     String unit = quantityUnitParts.length > 1 ? quantityUnitParts[1].toLowerCase() : "other";
     String expiryDate = item['expiry'] ?? "";
+    final TextEditingController _expiryDateController = TextEditingController(text: expiryDate);
 
     List<String> units = ['piece', 'gram', 'liter', 'cup', 'other'];
 
@@ -463,7 +497,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
             borderRadius: BorderRadius.circular(15),
           ),
           title: const Text(
-            'Edit Item',
+            'New Item',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -504,9 +538,155 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                 ),
                 const SizedBox(height: 10),
                 TextField(
-                  decoration: const InputDecoration(labelText: 'Expiry Date'),
-                  controller: TextEditingController(text: expiryDate),
-                  onChanged: (value) => expiryDate = value,
+                  controller: _expiryDateController,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Expiry Date',
+                    labelStyle: TextStyle(fontFamily: 'Chewy'),
+                    hintText: 'Select a date',
+                  ),
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.tryParse(_expiryDateController.text) ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      final formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
+                      _expiryDateController.text = formattedDate;
+                      expiryDate = formattedDate; // ✅ Keep variable in sync
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (onDialogClose != null) {
+                  onDialogClose();
+                }
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(fontFamily: 'Chewy'),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                final updatedItem = {
+                  'item': itemName,
+                  'quantityWithUnit': '$quantity ${unit.endsWith('s') ? unit : '${unit}s'}',
+                  'expiry': expiryDate,
+                };
+
+                updateInventoryItem(item['id'], updatedItem).then((_) {
+                  if (onDialogClose != null) {
+                    onDialogClose();
+                  }
+                  Navigator.pop(context);
+                });
+              },
+              child: const Text(
+                'Save',
+                style: TextStyle(fontFamily: 'Chewy'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  void showEdit2Dialog(BuildContext context, Map<String, dynamic> item, {VoidCallback? onDialogClose}) {
+    String itemName = item['item'] ?? "";
+    List<String> quantityUnitParts = (item['quantityWithUnit'] ?? "").split(' ');
+    String quantity = quantityUnitParts.isNotEmpty ? quantityUnitParts[0] : "0";
+    String unit = quantityUnitParts.length > 1 ? quantityUnitParts[1].toLowerCase() : "other";
+    String expiryDate = item['expiry'] ?? "";
+    final TextEditingController _expiryDateController = TextEditingController(text: expiryDate);
+
+    List<String> units = ['piece', 'gram', 'liter', 'cup', 'other'];
+
+    if (unit.endsWith('s') && unit != 'pieces') {
+      unit = unit.substring(0, unit.length - 1);
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent accidental closure
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: createMaterialColor(const Color(0xFFF9E0D2)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: const Text(
+            'Edit Item',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Chewy',
+              color: Colors.black,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Name of Item' , labelStyle: TextStyle(fontFamily: 'Chewy'),),
+                  controller: TextEditingController(text: itemName),
+                  onChanged: (value) => itemName = value,
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Quantity', labelStyle: TextStyle(fontFamily: 'Chewy'),),
+                  keyboardType: TextInputType.number,
+                  controller: TextEditingController(text: quantity),
+                  onChanged: (value) => quantity = value,
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Unit', labelStyle: TextStyle(fontFamily: 'Chewy'),),
+                  value: units.contains(unit) ? unit : null,
+                  items: units
+                      .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        unit = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _expiryDateController,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Expiry Date',
+                    labelStyle: TextStyle(fontFamily: 'Chewy'),
+                    hintText: 'Select a date',
+                  ),
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.tryParse(_expiryDateController.text) ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      final formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
+                      _expiryDateController.text = formattedDate;
+                      expiryDate = formattedDate; // ✅ Keep variable in sync
+                    }
+                  },
                 ),
               ],
             ),
@@ -571,19 +751,59 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
 
 
     return Scaffold(
-      backgroundColor: createMaterialColor(const Color(0xFF80A6A4)),
       body: Stack(
         children: [
           // Top-left Positioned Back Arrow
-          Positioned(
-            top: 10,
-            left: 10,
-            child: GestureDetector(
-              onTap: () {
-                Navigator.of(context)
-                    .push(fadeTransition(const MyKitchen01Content()));
-              },
-              child: canvaImage('back_arrow.png', width: 50, height: 50),
+          Positioned.fill(
+            child: Image.asset(
+              'assets/background/page_view_my_kitchen_01.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Back Arrow
+                RawMaterialButton(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => MyKitchen01Content()),
+                    );
+                  },
+                  fillColor: const Color(0xFF4A90A4),
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
+                  shape: const CircleBorder(),
+                  child: Image.asset(
+                    'assets/buttons/back_arrow.png',
+                    width: 40,
+                    height: 40,
+                  ),
+                ),
+
+                // Music Toggle Button
+                RawMaterialButton(
+                  onPressed: () async {
+                    await toggleMusic();
+                    setState(() {}); // Ensure UI updates when toggled
+                  },
+                  fillColor: const Color(0xFF4A90A4),
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
+                  shape: const CircleBorder(),
+                  child: Image.asset(
+                    isMusicOn ? 'assets/buttons/sound_on_white.png' : 'assets/buttons/sound_off_white.png',
+                    width: 25,
+                    height: 25,
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -591,20 +811,20 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
           Positioned(
             top: 130,
             right: 15,
-            child: GestureDetector(
-              onTap: () {
-                // Add button functionality here
+            child: RawMaterialButton(
+              onPressed: () {
                 print('Add item');
                 showAddDialog(context);
               },
-              child: Container(
+              fillColor: const Color(0xFF4A90A4),
+              constraints: const BoxConstraints.tightFor(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
-                  color: createMaterialColor(const Color(0xFFF1BFA1)),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.add, color: Colors.black),
+              ),
+              shape: const CircleBorder(),
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
               ),
             ),
           ),
@@ -616,12 +836,24 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
               children: [
                 // Browse Inventory Logo
                 Center(
-                  child: canvaImage('browse_inventory.png', width: 120, height: 120),
+                  child: canvaImage('browse_inventory.png', width: 125, height: 125),
                 ),
                 const SizedBox(height: 20),
 
                 Expanded(
-                child: ListView.builder(
+                  child: inventory.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "No ingredients available",
+                          style: TextStyle(
+                            fontSize: 23,
+                            fontFamily: 'Chewy',
+                            color: Colors.black,
+                            height: -3,
+                          ),
+                        ),
+                      )
+                : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 15.0),
                   itemCount: inventory.length,
                   itemBuilder: (context, index) {
@@ -637,23 +869,26 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                     final requiresEditing = item['quantityWithUnit'].isEmpty || item['expiry'].isEmpty;
 
                     // Check if the item is expiring today
-                    final isExpiringToday = expiryDate != null &&
-                        expiryDate.year == today.year &&
-                        expiryDate.month == today.month &&
-                        expiryDate.day == today.day;
+                    final todayDateOnly = DateTime(today.year, today.month, today.day);
+                    final expiryDateOnly = expiryDate != null
+                        ? DateTime(expiryDate.year, expiryDate.month, expiryDate.day)
+                        : null;
 
+                    final isExpiringToday = expiryDateOnly == todayDateOnly;
+                    final isExpired = expiryDateOnly != null && expiryDateOnly.isBefore(todayDateOnly);
+                    final isFresh = expiryDateOnly != null && expiryDateOnly.isAfter(todayDateOnly);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 15.0),
                       child: Container(
                         height: 100, // Set the height of the list item
                         decoration: BoxDecoration(
-                          color: createMaterialColor(const Color(0xFFF1BFA1)),
+                          color: createMaterialColor(const Color(0xFFFFF7F0)),
                           borderRadius: BorderRadius.circular(12.0),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 5,
-                              offset: const Offset(0, 2),
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
                             ),
                           ],
                         ),
@@ -665,20 +900,32 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                               height: 70,
                               margin: const EdgeInsets.only(left: 15),
                               decoration: BoxDecoration(
-                                color: createMaterialColor(const Color(0xFFE0E0E0)),
+                                color: createMaterialColor(const Color(0xFFFFF7F0)),
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
-                                child: Text(
-                                  (item['item'] != null && item['item'].isNotEmpty)
-                                      ? item['item'][0].toUpperCase() // Initial Character
-                                      : "?", // Fallback to "?" if item name is null or empty
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                    fontFamily: 'Chewy',
-                                  ),
+                                child: Image.asset(
+                                  'assets/cooking_icons/${item['item'].toLowerCase().replaceAll(' ', '_')}.png',
+                                  width: 40,
+                                  height: 40,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    // Fallback if image doesn't exist
+                                    // return Text(
+                                    //   item['item']?.isNotEmpty == true ? item['item'][0].toUpperCase() : "?",
+                                    //   style: const TextStyle(
+                                    //     fontSize: 28,
+                                    //     fontWeight: FontWeight.bold,
+                                    //     color: Colors.black,
+                                    //     fontFamily: 'Chewy',
+                                    //   ),
+                                    // );
+                                    // ✅ Show a default placeholder image if the asset doesn't exist
+                                    return Image.asset(
+                                      'assets/cooking_icons/ingredient_icon.png',
+                                      width: 40,
+                                      height: 40,
+                                    );
+                                  },
                                 ),
                               ),
                             ),
@@ -712,17 +959,46 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                               size: 18,
                                             ),
                                           ),
-                                        if (isExpiringToday) // For expiry today
-                                          Padding(
-                                            padding: const EdgeInsets.only(left: 8.0),
-                                            child: Icon(
-                                              Icons.hourglass_bottom, // Icon for expiry today
-                                              color: Colors.red,
-                                              size: 18,
+                                        if (isExpired)
+                                            Padding(
+                                              padding: const EdgeInsets.only(left: 8.0),
+                                              child: Row(
+                                                children: const [
+                                                  Icon(Icons.warning, color: Colors.red, size: 18),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    'Expired',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.red,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontFamily: 'Chewy',
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          else if (isExpiringToday)
+                                            Padding(
+                                              padding: const EdgeInsets.only(left: 8.0),
+                                              child: Row(
+                                                children: const [
+                                                  Icon(Icons.hourglass_bottom, color: Colors.orange, size: 18),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    'Expiring Today',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.orange,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontFamily: 'Chewy',
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                      ],
-                                    ),
+                                        ],
+                                      ),
                                     const SizedBox(height: 5),
 
                                     // Quantity
@@ -750,7 +1026,7 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                           'Expiry: ${item['expiry'].isEmpty ? 'N/A' : item['expiry']}',
                                           style: TextStyle(
                                             fontSize: 16,
-                                            color: isExpiringToday ? Colors.red : Colors.black,
+                                            color: isExpired ? Colors.red : (isExpiringToday ? Colors.orange : Colors.black),
                                             fontFamily: 'Chewy',
                                           ),
                                         ),
@@ -765,40 +1041,34 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                             PopupMenuButton<String>(
                               onSelected: (value) {
                                 if (value == 'view') {
-                                  print('View action selected for ${item['item']}');
                                   showViewDialog(context, item);
                                 } else if (value == 'edit') {
-                                  print('Edit action selected for ${item['item']}');
-                                  showEditDialog(context, item);
+                                  showEdit2Dialog(context, item);
                                 }
                               },
                               icon: const Icon(
-                                Icons.more_vert, // Three-dot icon
-                                color: Colors.black, // Icon color
+                                Icons.more_vert,
+                                color: Colors.black,
                               ),
-                              color: createMaterialColor(const Color(0xFFF9E0D2)), // Popup background color
-                              elevation: 6, // Add shadow for better visibility
+                              color: const Color(0xFFFFF0E6), // Soft peach background
+                              elevation: 8,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15.0), // Rounded corners
+                                borderRadius: BorderRadius.circular(16.0),
                               ),
                               itemBuilder: (BuildContext context) => [
                                 PopupMenuItem(
                                   value: 'view',
                                   child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.visibility,
-                                        color: Color(0xFF80A6A4), // Custom icon color
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 10),
+                                    children: const [
+                                      Icon(Icons.visibility, color: Color(0xFFDECBB7), size: 20), // Soft beige icon
+                                      SizedBox(width: 10),
                                       Text(
                                         'View',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
+                                          fontFamily: 'Chewy',
                                           color: Colors.black,
-                                          fontFamily: 'Chewy', // Match the app's font
                                         ),
                                       ),
                                     ],
@@ -807,20 +1077,16 @@ class _MyKitchen03ContentState extends State<MyKitchen03Content> {
                                 PopupMenuItem(
                                   value: 'edit',
                                   child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.edit,
-                                        color: Color(0xFF80A6A4), // Custom icon color
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 10),
+                                    children: const [
+                                      Icon(Icons.edit, color: Color(0xFFDECBB7), size: 20), // Muted mint icon
+                                      SizedBox(width: 10),
                                       Text(
                                         'Edit',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
+                                          fontFamily: 'Chewy',
                                           color: Colors.black,
-                                          fontFamily: 'Chewy', // Match the app's font
                                         ),
                                       ),
                                     ],

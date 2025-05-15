@@ -1,6 +1,7 @@
 package com.cookaiga.demo.api.service;
 
 import com.cookaiga.demo.models.Post;
+import com.cookaiga.demo.api.DTO.PostDTO;
 import com.cookaiga.demo.api.repository.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,23 @@ public class PostService {
     // Retrieve all posts
     public List<Post> getAllPosts() {
         return postRepository.findAllPosts();
+    }
+
+    // Retrieve all posts using DTO
+    public List<PostDTO> getUsernamePosts() {
+
+        List<Object[]> rawPosts = postRepository.findAllPostsRaw();
+
+    return rawPosts.stream()
+        .map(row -> new PostDTO(
+            ((Number) row[0]).longValue(),                        // postID
+            ((Number) row[1]).longValue(),                        // userID
+            (String) row[2],                                      // imagePath
+            (String) row[3],                                      // caption
+            ((java.sql.Timestamp) row[4]).toLocalDateTime(),      // postDate
+            (String) row[5]                                       // username
+        ))
+        .toList();
     }
 
     // Retrieve a post by ID
