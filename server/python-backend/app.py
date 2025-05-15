@@ -13,37 +13,32 @@ app = Flask(__name__)
 CORS(app)
 
 # Set your OpenAI API key
-
+client = AzureOpenAI(
+    # Enter Own API Key, API Version, Azure_EndPoint
+    api_key="", 
+    api_version="",
+    azure_endpoint=""
+)
 
 
 # Connect to MySQL Database
+# Uses MySQL Database 
 conn = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="7aF54E0c31",
-    database="Cookaiga"
+    host="",
+    user="",
+    password="",
+    database=""
 )
 cursor = conn.cursor()
-
-
-# API endpoint to fetch ingredients
-# @app.route('/ingredients', methods=['GET'])
-# def get_ingredients():
-#     cursor.execute("SELECT item, quantity_with_unit, expiry FROM ingredients WHERE quantity_with_unit != ''")
-#     ingredients = cursor.fetchall()
-
-#     ingredients_list = [f"{row[1]} of {row[0]} expiring on {row[2]}" for row in ingredients]
-#     print(ingredients_list)
-#     return jsonify({"ingredients": ingredients_list})
 
 @app.route('/ingredients', methods=['GET'])
 def get_ingredients():
     try:
         conn = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='7aF54E0c31',
-            database='Cookaiga'
+            host="",
+            user="",
+            password="",
+            database=""
         )
         cursor = conn.cursor()
 
@@ -118,10 +113,10 @@ def generate_recipe_from_single_ingredient():
     # Attempts to connect to the MySQL database using credentials. (mysql.connector is the Python library used)
     try:
         conn = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='7aF54E0c31',
-            database='Cookaiga'
+            host="",
+            user="",
+            password="",
+            database=""
         )
         # A cursor is created for executing SQL queries.
         cursor = conn.cursor()
@@ -198,10 +193,10 @@ def generate_recipe_overview():
     try:
         # 🔌 Connect to DB
         conn = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='7aF54E0c31',
-            database='Cookaiga'
+            host="",
+            user="",
+            password="",
+            database=""
         )
         cursor = conn.cursor()
 
@@ -449,10 +444,6 @@ async def generate_recipe_images():
     image_urls = {name: url for name, url in results}
 
     return jsonify({"image_urls": image_urls})
-
-
-
-
 
 
 
@@ -759,10 +750,10 @@ def deduct_ingredients():
 
     try:
         conn = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='7aF54E0c31',
-            database='Cookaiga'
+            host="",
+            user="",
+            password="",
+            database=""
         )
         cursor = conn.cursor()
 
@@ -858,12 +849,6 @@ def deduct_ingredients():
             cursor.close()
         if conn:
             conn.close()
-
-
-
-
-
-
 
 
 
